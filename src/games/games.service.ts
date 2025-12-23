@@ -1,0 +1,85 @@
+import { Injectable } from '@nestjs/common';
+
+export interface GameVariable {
+  name: string;
+  description: string;
+  envVar: string;
+  defaultValue: string;
+  type: 'string' | 'number' | 'boolean' | 'enum';
+  options?: string[]; 
+}
+
+export interface GameTemplate {
+  id: string;
+  name: string;
+  type: string;
+  category: 'game' | 'voip' | 'web' | 'utility';
+  dockerImage: string;
+  defaultPort: number;
+  defaultEnv: string[];
+  icon: string;
+  banner?: string;
+  description: string;
+  variables: GameVariable[];
+}
+
+@Injectable()
+export class GamesService {
+  private games: GameTemplate[] = [
+    { id: 'rust', name: 'Rust', type: 'rust', category: 'game', dockerImage: 'gameservermanagers/gameserver:rust', defaultPort: 28015, defaultEnv: [], icon: '☢️', banner: '/banners/rust.jpg', description: 'Hardcore survival.', variables: [] },
+    { id: 'cs2', name: 'Counter-Strike 2', type: 'cs2', category: 'game', dockerImage: 'gameservermanagers/gameserver:cs2', defaultPort: 27015, defaultEnv: [], icon: '🔫', banner: '/banners/cs2.jpg', description: 'Tactical shooter.', variables: [] },
+    { id: 'gmod', name: 'Garrys Mod', type: 'gmod', category: 'game', dockerImage: 'gameservermanagers/gameserver:gmod', defaultPort: 27015, defaultEnv: [], icon: '🔧', banner: '/banners/gmod.jpg', description: 'Physics sandbox.', variables: [] },
+    { id: 'pz', name: 'Project Zomboid', type: 'pz', category: 'game', dockerImage: 'gameservermanagers/gameserver:pz', defaultPort: 16261, defaultEnv: [], icon: '🧟', banner: '/banners/pz.jpg', description: 'Zombie RPG.', variables: [] },
+    { id: 'tf2', name: 'Team Fortress 2', type: 'tf2', category: 'game', dockerImage: 'gameservermanagers/gameserver:tf2', defaultPort: 27015, defaultEnv: [], icon: '🎩', banner: '/banners/tf2.jpg', description: 'Arena shooter.', variables: [] },
+    { id: 'l4d2', name: 'Left 4 Dead 2', type: 'l4d2', category: 'game', dockerImage: 'gameservermanagers/gameserver:l4d2', defaultPort: 27015, defaultEnv: [], icon: '🧟', banner: '/banners/l4d2.jpg', description: 'Coop shooter.', variables: [] },
+    { id: 'minecraft', name: 'Minecraft (Java)', type: 'mc', category: 'game', dockerImage: 'hostmachine/game-minecraft:latest', defaultPort: 25565, defaultEnv: ["MEMORY=2048", "MOTD=A HostMachine World", "DIFFICULTY=1", "MAX_PLAYERS=20"], icon: '⛏️', banner: '/banners/mc.jpg', description: 'PaperMC high-perf server.', variables: [
+        { name: 'Memory (MB)', description: 'Total RAM for the JVM', envVar: 'MEMORY', defaultValue: '2048', type: 'number' },
+        { name: 'MOTD', description: 'Server list message', envVar: 'MOTD', defaultValue: 'A HostMachine World', type: 'string' },
+        { name: 'Difficulty', description: '0=Peaceful, 1=Easy, 2=Normal, 3=Hard', envVar: 'DIFFICULTY', defaultValue: '1', type: 'enum', options: ['0', '1', '2', '3'] },
+        { name: 'Max Players', description: 'Concurrent slot limit', envVar: 'MAX_PLAYERS', defaultValue: '20', type: 'number' }
+    ] },
+    { id: 'fctr', name: 'Factorio', type: 'fctr', category: 'game', dockerImage: 'gameservermanagers/gameserver:fctr', defaultPort: 34197, defaultEnv: [], icon: '⚙️', banner: '/banners/fctr.jpg', description: 'Factory building.', variables: [] },
+    { id: 'sf', name: 'Satisfactory', type: 'sf', category: 'game', dockerImage: 'gameservermanagers/gameserver:sf', defaultPort: 7777, defaultEnv: [], icon: '🏭', banner: '/banners/sf.jpg', description: 'Factory sim.', variables: [] },
+    { id: 'vh', name: 'Valheim', type: 'vh', category: 'game', dockerImage: 'hostmachine/game-valheim:latest', defaultPort: 2456, defaultEnv: ["WORLD_NAME=Dedicated", "PASSWORD=secret", "SERVER_NAME=HostMachine Valheim"], icon: '🌲', banner: '/banners/vh.jpg', description: 'Viking survival.', variables: [
+        { name: 'Server Name', description: 'Name in server browser', envVar: 'SERVER_NAME', defaultValue: 'HostMachine Valheim', type: 'string' },
+        { name: 'World Name', description: 'Name of the save file', envVar: 'WORLD_NAME', defaultValue: 'Dedicated', type: 'string' },
+        { name: 'Server Password', description: 'Minimum 5 characters', envVar: 'PASSWORD', defaultValue: 'secret', type: 'string' }
+    ] },
+    { id: 'ark', name: 'ARK: Survival Evolved', type: 'ark', category: 'game', dockerImage: 'hostmachine/game-ark-evolved:latest', defaultPort: 7777, defaultEnv: ["SERVER_NAME=ARK-ASE", "PASSWORD=secret", "ADMIN_PASSWORD=adminsecret", "MAX_PLAYERS=70"], icon: '🦕', banner: '/banners/ark.jpg', description: 'Classic dino survival.', variables: [
+        { name: 'Session Name', description: 'Public name', envVar: 'SERVER_NAME', defaultValue: 'ARK-ASE', type: 'string' },
+        { name: 'Server Password', description: 'Optional join pass', envVar: 'PASSWORD', defaultValue: 'secret', type: 'string' },
+        { name: 'Admin Password', description: 'Cheat console pass', envVar: 'ADMIN_PASSWORD', defaultValue: 'adminsecret', type: 'string' },
+        { name: 'Max Players', description: 'Max 70 recommended', envVar: 'MAX_PLAYERS', defaultValue: '70', type: 'number' }
+    ] },
+    { id: 'asa', name: 'ARK: Survival Ascended', type: 'asa', category: 'game', dockerImage: 'hostmachine/game-ark-ascended:latest', defaultPort: 7777, defaultEnv: ["SERVER_NAME=ARK-ASA", "PASSWORD=secret", "ADMIN_PASSWORD=adminsecret", "MAX_PLAYERS=70"], icon: '🦕', banner: '/banners/ark.jpg', description: 'UE5 Remastered survival.', variables: [
+        { name: 'Session Name', description: 'Public name', envVar: 'SERVER_NAME', defaultValue: 'ARK-ASA', type: 'string' },
+        { name: 'Server Password', description: 'Optional join pass', envVar: 'PASSWORD', defaultValue: 'secret', type: 'string' },
+        { name: 'Admin Password', description: 'Cheat console pass', envVar: 'ADMIN_PASSWORD', defaultValue: 'adminsecret', type: 'string' },
+        { name: 'Max Players', description: 'Max 70 recommended', envVar: 'MAX_PLAYERS', defaultValue: '70', type: 'number' }
+    ] },
+    { id: 'pw', name: 'Palworld', type: 'pw', category: 'game', dockerImage: 'gameservermanagers/gameserver:pw', defaultPort: 8211, defaultEnv: [], icon: '🐾', banner: '/banners/pw.jpg', description: 'Monster survival.', variables: [] },
+    { id: 'terraria', name: 'Terraria', type: 'terraria', category: 'game', dockerImage: 'hostmachine/game-terraria:latest', defaultPort: 7777, defaultEnv: ["MAX_PLAYERS=16", "WORLD_NAME=HostMachine"], icon: '🌳', banner: '/banners/terraria.jpg', description: 'Native Terraria core.', variables: [
+        { name: 'Max Players', description: 'Slot count', envVar: 'MAX_PLAYERS', defaultValue: '16', type: 'number' },
+        { name: 'World Name', description: 'Name of the world file', envVar: 'WORLD_NAME', defaultValue: 'HostMachine', type: 'string' }
+    ] },
+    { id: 'sdtd', name: '7 Days to Die', type: 'sdtd', category: 'game', dockerImage: 'gameservermanagers/gameserver:sdtd', defaultPort: 26900, defaultEnv: [], icon: '🧟', banner: '/banners/sdtd.jpg', description: 'Survival horde.', variables: [] },
+    { id: 'arma3', name: 'ARMA 3', type: 'arma3', category: 'game', dockerImage: 'gameservermanagers/gameserver:arma3', defaultPort: 2302, defaultEnv: [], icon: '🎖️', banner: '/banners/arma3.jpg', description: 'Military sim.', variables: [] },
+    { id: 'dayz', name: 'DayZ', type: 'dayz', category: 'game', dockerImage: 'gameservermanagers/gameserver:dayz', defaultPort: 2302, defaultEnv: [], icon: '🧟', banner: '/banners/dayz.jpg', description: 'Hardcore survival.', variables: [] },
+
+    { id: 'ts3', name: 'Teamspeak 3', type: 'voip', category: 'voip', dockerImage: 'teamspeak:latest', defaultPort: 9987, defaultEnv: ["TS3SERVER_LICENSE=accept"], icon: '🎙️', banner: '/banners/ts3.jpg', description: 'Pro voice chat.', variables: [] },
+    { id: 'mumble', name: 'Mumble (Murmur)', type: 'voip', category: 'voip', dockerImage: 'mumblevoip/mumble-server:latest', defaultPort: 64738, defaultEnv: [], icon: '📻', banner: '/banners/mumble.jpg', description: 'Low-latency VOIP.', variables: [] },
+
+    { id: 'nginx', name: 'Nginx Web Server', type: 'web', category: 'web', dockerImage: 'nginx:latest', defaultPort: 80, defaultEnv: [], icon: '🌐', banner: '/banners/nginx.jpg', description: 'High-perf web server.', variables: [] },
+    { id: 'nodejs', name: 'Node.js Runtime', type: 'web', category: 'web', dockerImage: 'node:latest', defaultPort: 3000, defaultEnv: [], icon: '🟢', banner: '/banners/nodejs.jpg', description: 'JS app hosting.', variables: [] },
+    { id: 'ghost', name: 'Ghost Blog', type: 'web', category: 'web', dockerImage: 'ghost:latest', defaultPort: 2368, defaultEnv: [], icon: '👻', banner: '/banners/ghost.jpg', description: 'Modern publishing.', variables: [] },
+    { id: 'wordpress', name: 'WordPress Site', type: 'web', category: 'web', dockerImage: 'wordpress:latest', defaultPort: 80, defaultEnv: [], icon: '📝', banner: '/banners/wordpress.jpg', description: 'Classic CMS.', variables: [] }
+  ];
+
+  findAll() {
+    return this.games;
+  }
+
+  findOne(id: string) {
+    return this.games.find(g => g.id === id);
+  }
+}
