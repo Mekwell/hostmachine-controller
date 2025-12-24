@@ -16,7 +16,7 @@ export class DeploymentProcessor extends WorkerHost {
     
     try {
         // Execute the actual deployment logic
-        const result = await this.serversService.deployServerTask(job.data);
+        const result = await this.serversService.deployServerTask(job.data, job);
         this.logger.log(`Deployment Job ${job.id} Completed: ${result.serverId}`);
         return result;
     } catch (error: any) {

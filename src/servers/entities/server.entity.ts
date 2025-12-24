@@ -60,6 +60,9 @@ export class Server {
   @Column({ default: 0 })
   ramUsage!: number; // In MB
 
+  @Column({ default: 0 })
+  progress!: number; // 0-100 for deployment progress
+
   @CreateDateColumn()
   createdAt!: Date;
 

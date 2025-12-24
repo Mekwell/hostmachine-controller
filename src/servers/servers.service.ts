@@ -104,10 +104,14 @@ export class ServersService {
   /**
    * Actual logic executed by the background worker
    */
-  async deployServerTask(dto: CreateServerDto) {
+  async deployServerTask(dto: CreateServerDto, job?: Job) {
     this.logger.log(`[Worker] Starting deployment task for ${dto.gameType}`);
+    const updateProgress = async (val: number) => {
+        if (job) await job.updateProgress(val);
+    };
 
     try {
+        await updateProgress(5);
         let template: any = this.gamesService.findOne(dto.gameType);
         if (!template && !dto.customImage) throw new BadRequestException(`Unknown game type: ${dto.gameType}`);
 
@@ -115,6 +119,7 @@ export class ServersService {
             template = { dockerImage: dto.customImage, defaultPort: 25565, defaultEnv: [] };
         }
 
+        await updateProgress(10);
         const nodes = await this.nodesService.findAll();
         let onlineNodes = nodes.filter(n => n.status === 'ONLINE');
         if (dto.location) {
@@ -132,6 +137,7 @@ export class ServersService {
         const sftpUsername = `user_${nanoid(8)}`;
         const sftpPassword = nanoid(16);
 
+        await updateProgress(20);
         const dnsIp = targetNode.externalIp || targetNode.publicIp;
         let subdomain = '';
         if (dnsIp) {
@@ -141,6 +147,7 @@ export class ServersService {
             if (fullDomain) subdomain = fullDomain;
         }
 
+        await updateProgress(40);
         let resolvedMods: any[] = [];
         if (dto.mods && dto.mods.length > 0) resolvedMods = this.modsService.resolveDependencies(dto.mods);
 
@@ -153,6 +160,7 @@ export class ServersService {
             port: port,
             memoryLimitMb: dto.memoryLimitMb,
             status: 'PROVISIONING',
+            progress: 50,
             env: dto.env || [],
             autoUpdate: dto.autoUpdate ?? true,
             restartSchedule: dto.restartSchedule,
@@ -163,6 +171,7 @@ export class ServersService {
         
         const savedServer = await this.serverRepository.save(server);
 
+        await updateProgress(60);
         await this.commandsService.create({
             targetNodeId: targetNode.id,
             type: CommandType.START_SERVER,
@@ -182,6 +191,9 @@ export class ServersService {
                 bindIp: targetNode.vpnIp || '0.0.0.0'
             }
         });
+
+        await updateProgress(100);
+        await this.serverRepository.update({ id: savedServer.id }, { progress: 100 });
 
         return { serverId: savedServer.id, subdomain };
     } catch (error: any) {
