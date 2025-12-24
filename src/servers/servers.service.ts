@@ -68,7 +68,7 @@ export class ServersService {
       // 2. Update status for active containers
       for (const [id, status] of Object.entries(containerStates)) {
           const stats = usage.containerStats?.[id];
-          const updateData: any = { status };
+          const updateData: any = { status: status === 'RUNNING' ? 'LIVE' : status };
           
           if (stats) {
               updateData.cpuUsage = stats.cpu;
@@ -76,11 +76,15 @@ export class ServersService {
           }
 
           const server = await this.serverRepository.findOneBy({ id });
-          if (server && server.status === 'PROVISIONING' && (status === 'STARTING' || status === 'LIVE')) {
-              this.logger.log(`Server ${id} finished provisioning and is now ${status}`);
+          if (server && server.status === 'PROVISIONING' && (status === 'STARTING' || status === 'LIVE' || status === 'RUNNING')) {
+              this.logger.log(`Server ${id} (${server.name}) detected as active on Node. Transitioning from PROVISIONING to LIVE.`);
+              updateData.status = 'LIVE';
+              updateData.progress = 100;
           }
 
-          await this.serverRepository.update({ id }, updateData);
+          if (server) {
+              await this.serverRepository.update({ id }, updateData);
+          }
       }
   }
 
