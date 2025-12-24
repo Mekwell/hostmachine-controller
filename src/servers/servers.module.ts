@@ -9,6 +9,7 @@ import { AuthModule } from '../auth/auth.module';
 import { GamesModule } from '../games/games.module';
 import { ModsModule } from '../mods/mods.module';
 import { DnsModule } from '../dns/dns.module';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -18,7 +19,8 @@ import { DnsModule } from '../dns/dns.module';
     forwardRef(() => AuthModule),
     GamesModule,
     ModsModule,
-    DnsModule
+    DnsModule,
+    BullModule.registerQueue({ name: 'deploy' })
   ],
   controllers: [ServersController],
   providers: [ServersService],
