@@ -34,4 +34,10 @@ export class ConsoleGateway implements OnGatewayConnection, OnGatewayDisconnect 
     client.join(`server:${serverId}`);
     return { event: 'joined', data: serverId };
   }
+
+  @SubscribeMessage('log-push')
+  handleLogPush(client: Socket, payload: { serverId: string, data: string }) {
+      // Broadcast to all clients watching this server
+      this.server.to(`server:${payload.serverId}`).emit('log', payload.data);
+  }
 }
