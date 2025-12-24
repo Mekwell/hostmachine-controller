@@ -20,7 +20,11 @@ export class AdminService {
     const nodes = await this.nodeRepository.find();
     const servers = await this.serverRepository.find();
     
-    // Merge Live Data (from Node heartbeat cache) with DB Data
+    // Auto-Fix Mismatched Plans (Temporary migration logic)
+    await this.nodeRepository.query("UPDATE plan SET gameId = 'minecraft' WHERE gameId = 'minecraft-java'");
+    await this.nodeRepository.query("UPDATE plan SET gameId = 'vh' WHERE gameId = 'vh'"); // Already fine but ensuring
+    
+    // Merge Live Data...
     // Note: In a real app, we'd use Redis for the live heartbeat data. 
     // For now, we assume Node entity 'specs' or a new field 'lastHeartbeatData' 
     // was updated. Since we don't persist transient heartbeat detailed stats 
