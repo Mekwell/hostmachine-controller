@@ -4,19 +4,8 @@ const CONTROLLER_URL = 'http://localhost:3000';
 const INTERNAL_SECRET = 'c8dc1db2d58ed837884a119a3d48575aeabc8f09fa541e14ee5aa2103b5b7efb';
 const TEST_USER_ID = 'audit-admin-uuid';
 
-const FLEET_MANIFEST = [
-    { type: 'minecraft', ram: 2048, env: ['EULA=TRUE'] },
-    { type: 'terraria', ram: 1024, env: ['MAX_PLAYERS=16'] },
-    { type: 'vh', ram: 2048, env: ['PASSWORD=audit123'] },
-    { type: 'sdtd', ram: 4096, env: ['WORLD_SIZE=4096'] },
-    { type: 'ark', ram: 8192, env: ['MAP=TheIsland'] },
-    { type: 'asa', ram: 16384, env: ['MAP=TheIsland_WP'] }
-];
-
 async function runExhaustiveAudit() {
     console.log('>>> INITIALIZING NEXUS USER-BASED FLEET AUDIT <<<');
-    
-    // 1. Monitor existing and new for this user
     console.log(`Monitoring all units for User: ${TEST_USER_ID}`);
 
     for (let i = 0; i < 60; i++) {
@@ -38,18 +27,16 @@ async function runExhaustiveAudit() {
                 console.log(`  > ${s.name.padEnd(15)} | ${s.gameType.padEnd(10)} | Status: ${s.status.padEnd(12)} | Progress: ${String(s.progress).padStart(3)}% | CPU: ${s.cpuUsage}%`);
             });
 
-            if (liveCount >= FLEET_MANIFEST.length) {
-                console.log('
-✨ AUDIT TARGET REACHED. MINIMUM FLEET SIZE OPERATIONAL.');
+            if (liveCount >= 6) {
+                console.log('SUCCESS: TARGET REACHED.');
                 return;
             }
         } catch (e: any) {
-            console.warn('  [!] Monitor error:', e.message);
+            console.warn('Monitor error:', e.message);
         }
     }
 
-    console.log('
-❌ AUDIT TIMEOUT.');
+    console.log('TIMEOUT: AUDIT FAILED.');
     process.exit(1);
 }
 
