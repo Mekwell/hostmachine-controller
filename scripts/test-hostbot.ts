@@ -3,8 +3,8 @@ import axios from 'axios';
 
 // Mock Config mimicking the Agent's environment
 const CONTROLLER_URL = 'http://localhost:3000';
-const NODE_ID = 'test-node-id';
-const API_KEY = 'test-api-key'; // You might need a real API Key if your Controller enforces it strictly
+const NODE_ID = '6e8a5ae5-af28-4db2-b2f4-b8e34963a7ba';
+const API_KEY = '0fa83474-e91c-408a-81e1-7d91cf335d4c';
 
 async function simulateCrash() {
   console.log('>>> SIMULATING SERVER CRASH REPORT <<<');
