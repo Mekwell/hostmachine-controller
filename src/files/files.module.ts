@@ -12,5 +12,6 @@ import { Server } from '../servers/entities/server.entity';
   ],
   controllers: [FilesController],
   providers: [FilesService],
+  exports: [FilesService]
 })
 export class FilesModule {}
