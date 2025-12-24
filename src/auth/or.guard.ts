@@ -8,11 +8,20 @@ export const OrGuard = (...guards: Type<CanActivate>[]) : any => {
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
       for (const guardType of guards) {
-        const guard = this.moduleRef.get(guardType, { strict: false });
-        if (await guard.canActivate(context)) {
-          return true;
+        try {
+          const guard = this.moduleRef.get(guardType, { strict: false });
+          const result = await guard.canActivate(context);
+          if (result) {
+            return true;
+          }
+        } catch (e: any) {
+          // If a guard throws, we log it but continue to the next one
+          console.log(`[OrGuard] Guard ${guardType.name} failed or threw: ${e.message}`);
         }
       }
+      
+      const req = context.switchToHttp().getRequest();
+      console.warn(`[OrGuard] All guards failed for ${req.method} ${req.url} from ${req.ip}`);
       return false;
     }
   }
