@@ -4,6 +4,7 @@ import { CommandsService } from '../commands/commands.service';
 import { ReportIssueDto } from './dto/report-issue.dto';
 import { TicketType, TicketStatus } from '../tickets/entities/ticket.entity';
 import { CommandType } from '../commands/dto/create-command.dto';
+import { ServersService } from '../servers/servers.service';
 
 @Injectable()
 export class AiService {
@@ -12,14 +13,25 @@ export class AiService {
   constructor(
     private readonly ticketsService: TicketsService,
     private readonly commandsService: CommandsService,
+    private readonly serversService: ServersService,
   ) {}
 
   async analyzeAndRemediate(nodeId: string, report: ReportIssueDto) {
     this.logger.log(`HostBot analyzing issue from Node ${nodeId} for container ${report.containerName}`);
     
-    // 1. Identify Server ID (Container Name usually is the Server ID or contains it)
-    // Assumption: containerName is the server UUID.
-    const serverId = report.containerName; 
+    // 1. Identify Server ID
+    const containerName = report.containerName;
+    let serverId = null;
+    
+    // Check if container name is a valid server ID in our DB
+    try {
+        const server = await this.serversService.findOne(containerName);
+        if (server) {
+            serverId = server.id;
+        }
+    } catch (e) {
+        // Not a known server ID, keep as null
+    }
 
     // 2. Pattern Matching (The "Brain")
     let type = TicketType.UNKNOWN;
