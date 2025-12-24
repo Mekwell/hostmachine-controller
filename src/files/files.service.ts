@@ -53,4 +53,17 @@ export class FilesService {
 
     return this.commandsService.waitForResult(cmd.id);
   }
+
+  async deleteFile(serverId: string, path: string) {
+    const server = await this.serverRepository.findOneBy({ id: serverId });
+    if (!server) throw new NotFoundException('Server not found');
+
+    const cmd = this.commandsService.create({
+        targetNodeId: server.nodeId,
+        type: CommandType.DELETE_FILE,
+        payload: { serverId, path }
+    });
+
+    return this.commandsService.waitForResult(cmd.id);
+  }
 }
