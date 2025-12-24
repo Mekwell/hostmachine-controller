@@ -11,9 +11,7 @@ export class InternalGuard implements CanActivate {
     const validSecret = process.env.INTERNAL_API_SECRET || 'insecure-secret';
 
     if (internalSecret !== validSecret) {
-      // Log the attempt for security auditing
-      console.warn(`Blocked unauthorized access attempt from ${request.ip}`);
-      throw new UnauthorizedException('Access Denied: Internal Network Only');
+      return false;
     }
 
     return true;

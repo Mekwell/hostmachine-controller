@@ -13,15 +13,14 @@ export class ApiKeyGuard implements CanActivate {
     console.log(`[ApiKeyGuard] Auth Check - NodeID: ${nodeId}, ApiKey: ${apiKey ? 'PRESENT' : 'MISSING'}`);
 
     if (!nodeId || !apiKey) {
-      console.warn(`[ApiKeyGuard] Missing headers for request from ${request.ip}`);
-      throw new UnauthorizedException('Missing Authentication Headers');
+      return false;
     }
 
     const isValid = await this.nodesService.validateApiKey(nodeId, apiKey);
     
     if (!isValid) {
       console.warn(`[ApiKeyGuard] Invalid credentials for NodeID: ${nodeId}`);
-      throw new UnauthorizedException('Invalid Credentials');
+      return false;
     }
 
     return true;
