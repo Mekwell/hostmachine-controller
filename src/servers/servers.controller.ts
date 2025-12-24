@@ -1,8 +1,3 @@
-import { Body, Controller, Post, UseGuards, Get, Param, Delete, Query } from '@nestjs/common';
-import { ServersService } from './servers.service';
-import { CreateServerDto } from './dto/create-server.dto';
-import { InternalGuard } from '../auth/internal.guard';
-
 import { Body, Controller, Post, UseGuards, Get, Param, Delete, Query, Patch } from '@nestjs/common';
 import { ServersService } from './servers.service';
 import { CreateServerDto } from './dto/create-server.dto';

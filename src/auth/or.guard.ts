@@ -1,10 +1,10 @@
 import { CanActivate, ExecutionContext, Injectable, mixin, Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
-export const OrGuard = (...guards: Type<CanActivate>[]) => {
+export const OrGuard = (...guards: Type<CanActivate>[]) : any => {
   @Injectable()
   class OrGuardImpl implements CanActivate {
-    constructor(private moduleRef: ModuleRef) {}
+    constructor(public moduleRef: ModuleRef) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
       for (const guardType of guards) {
