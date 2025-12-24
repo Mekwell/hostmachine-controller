@@ -11,7 +11,7 @@ import { DnsService } from '../dns/dns.service';
 import { Server } from './entities/server.entity';
 import { nanoid } from 'nanoid';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { Queue, Job } from 'bullmq';
 
 @Injectable()
 export class ServersService {
