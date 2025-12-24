@@ -25,6 +25,7 @@ import { TicketsModule } from './tickets/tickets.module';
 import { AiModule } from './ai/ai.module';
 import { Ticket } from './tickets/entities/ticket.entity';
 import { ConsoleModule } from './console/console.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -50,7 +51,8 @@ import { ConsoleModule } from './console/console.module';
     ConfigParserModule,
     TicketsModule,
     AiModule,
-    ConsoleModule
+    ConsoleModule,
+    AdminModule
   ],
   controllers: [AppController],
   providers: [AppService],
