@@ -19,7 +19,8 @@ import { BullModule } from '@nestjs/bullmq';
     forwardRef(() => AuthModule),
     GamesModule,
     ModsModule,
-    DnsModule
+    DnsModule,
+    BullModule.registerQueue({ name: 'deploy' })
   ],
   controllers: [ServersController],
   providers: [ServersService],
