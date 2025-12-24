@@ -21,7 +21,7 @@ export class AiService {
     
     // 1. Identify Server ID
     const containerName = report.containerName;
-    let serverId = null;
+    let serverId: string | undefined = undefined;
     
     // Check if container name is a valid server ID in our DB
     try {
@@ -30,7 +30,7 @@ export class AiService {
             serverId = server.id;
         }
     } catch (e) {
-        // Not a known server ID, keep as null
+        // Not a known server ID, keep as undefined
     }
 
     // 2. Pattern Matching (The "Brain")
