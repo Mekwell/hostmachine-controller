@@ -3,8 +3,15 @@ import { ServersService } from './servers.service';
 import { CreateServerDto } from './dto/create-server.dto';
 import { InternalGuard } from '../auth/internal.guard';
 
+import { Body, Controller, Post, UseGuards, Get, Param, Delete, Query, Patch } from '@nestjs/common';
+import { ServersService } from './servers.service';
+import { CreateServerDto } from './dto/create-server.dto';
+import { InternalGuard } from '../auth/internal.guard';
+import { ApiKeyGuard } from '../auth/api-key.guard';
+import { OrGuard } from '../auth/or.guard';
+
 @Controller('servers')
-@UseGuards(InternalGuard)
+@UseGuards(OrGuard(InternalGuard, ApiKeyGuard))
 export class ServersController {
   constructor(private readonly serversService: ServersService) {}
 
@@ -23,6 +30,11 @@ export class ServersController {
     return this.serversService.deployServer(createServerDto);
   }
 
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateDto: Partial<CreateServerDto>) {
+    return this.serversService.update(id, updateDto);
+  }
+
   @Post(':id/start')
   start(@Param('id') id: string) {
     return this.serversService.setServerStatus(id, 'start');
@@ -36,11 +48,6 @@ export class ServersController {
   @Post(':id/restart')
   restart(@Param('id') id: string) {
     return this.serversService.setServerStatus(id, 'restart');
-  }
-
-  @Post(':id')
-  update(@Param('id') id: string, @Body() updateDto: Partial<CreateServerDto>) {
-    return this.serversService.update(id, updateDto);
   }
 
   @Delete(':id')
