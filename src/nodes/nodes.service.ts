@@ -34,7 +34,7 @@ export class NodesService {
       hostname: registerDto.specs.hostname,
       specs: registerDto.specs,
       vpnIp: registerDto.vpnIp,
-      location: registerDto.location || 'Australia', // Default to Australia
+      location: registerDto.location || 'Sydney', // Default to Sydney
       status: 'ONLINE',
       apiKey: uuidv4(), // Generate High-Entropy Key
     });
