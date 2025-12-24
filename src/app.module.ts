@@ -21,13 +21,16 @@ import { ModsModule } from './mods/mods.module';
 import { DnsModule } from './dns/dns.module';
 import { ConfigParserModule } from './config-parser/config-parser.module';
 import { QueueModule } from './queue/queue.module';
+import { TicketsModule } from './tickets/tickets.module';
+import { AiModule } from './ai/ai.module';
+import { Ticket } from './tickets/entities/ticket.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot({
       type: 'sqlite',
       database: 'hostmachine.sqlite',
-      entities: [Node, Plan, Subscription, Server, Backup],
+      entities: [Node, Plan, Subscription, Server, Backup, Ticket],
       synchronize: true, // WARNING: Only for Development! Auto-updates DB schema.
     }),
     TypeOrmModule.forFeature([Node, Plan]),
@@ -43,7 +46,9 @@ import { QueueModule } from './queue/queue.module';
     ModsModule,
     DnsModule,
     QueueModule,
-    ConfigParserModule
+    ConfigParserModule,
+    TicketsModule,
+    AiModule
   ],
   controllers: [AppController],
   providers: [AppService],
