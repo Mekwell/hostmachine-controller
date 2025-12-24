@@ -5,7 +5,7 @@ export class DnsService {
   private readonly logger = new Logger(DnsService.name);
   private readonly apiToken = process.env.CF_API_TOKEN;
   private readonly zoneId = process.env.CF_ZONE_ID;
-  private readonly domain = process.env.CF_DOMAIN || 'hostmachine.net';
+  private readonly domain = process.env.CF_DOMAIN || 'hostmachine.com.au';
 
   /**
    * Sanitizes a server name to be DNS-safe.
