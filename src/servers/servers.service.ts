@@ -84,7 +84,7 @@ export class ServersService {
                   updateData.playerCount = (stats.players || []).length;
 
                   // Save Historical Metric using the found server entity
-                  const metric = this.metricRepository.create({
+                  /* const metric = this.metricRepository.create({
                       serverId: server.id,
                       cpuUsage: stats.cpu,
                       ramUsageMb: stats.ram,
@@ -92,7 +92,7 @@ export class ServersService {
                   });
                   this.metricRepository.save(metric).catch(err => 
                       this.logger.error(`Failed to save metric for ${server.name}: ${err.message}`)
-                  );
+                  ); */
               }
 
               if (server.status === 'PROVISIONING' && (status === 'STARTING' || status === 'LIVE' || status === 'RUNNING')) {
