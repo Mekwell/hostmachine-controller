@@ -13,6 +13,7 @@ import { Node } from './nodes/entities/node.entity';
 import { Plan } from './plans/entities/plan.entity';
 import { BackupsModule } from './backups/backups.module';
 import { Server } from './servers/entities/server.entity';
+import { Metric } from './servers/entities/metric.entity';
 import { Backup } from './backups/entities/backup.entity';
 import { Subscription } from './billing/entities/subscription.entity';
 
@@ -32,7 +33,7 @@ import { AdminModule } from './admin/admin.module';
     TypeOrmModule.forRoot({
       type: 'sqlite',
       database: 'hostmachine.sqlite',
-      entities: [Node, Plan, Subscription, Server, Backup, Ticket],
+      entities: [Node, Plan, Subscription, Server, Metric, Backup, Ticket],
       synchronize: true, // WARNING: Only for Development! Auto-updates DB schema.
     }),
     TypeOrmModule.forFeature([Node, Plan]),
