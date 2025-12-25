@@ -21,8 +21,8 @@ export class NodesService {
     this.logger.log(`Registering Node: ${registerDto.specs.hostname}`);
 
     // SECURITY: Check against a secret configured in the environment
-    const validSecret = process.env.ENROLLMENT_SECRET || 'valid-token'; 
-    if (registerDto.enrollmentToken !== validSecret) {
+    const validSecret = process.env.ENROLLMENT_SECRET; 
+    if (!validSecret || registerDto.enrollmentToken !== validSecret) {
        this.logger.warn(`Failed registration attempt with token: ${registerDto.enrollmentToken}`);
        throw new UnauthorizedException('Invalid Enrollment Token');
     }
@@ -94,11 +94,6 @@ export class NodesService {
           node.vpnIp = usage.vpnIp;
       }
       
-      // Manual Override for Vultr Hub (Prototype)
-      if (node.hostname === 'hm-node1') {
-          node.externalIp = '139.180.160.207';
-      }
-
       node.lastSeen = new Date();
       node.status = 'ONLINE';
       
