@@ -42,43 +42,66 @@ export class AiService {
 
     const logs = report.logs.toLowerCase();
 
-    // RULE 1: EULA (Minecraft)
-    if (logs.includes('eula') && logs.includes('agree')) {
+    // --- REFINED REMEDIATION MATRIX ---
+
+    // 1. EULA / AGREEMENT FAILURE (Minecraft, SteamCMD)
+    if (logs.includes('eula') && (logs.includes('agree') || logs.includes('false'))) {
         type = TicketType.CONFIG_ERROR;
-        analysis = 'Server failed because EULA was not accepted.';
-        resolution = 'HostBot automatically accepted EULA and restarted the server.';
+        analysis = 'Protocol Breach: EULA not accepted.';
+        resolution = 'HostBot automatically injected EULA acceptance and signaled a reboot.';
         status = TicketStatus.RESOLVED;
-        
-        // Auto-Fix: Re-deploy with EULA=TRUE (Simplification: Just Restart for now, but ideally update Env)
-        // For prototype, we just restart and hope the user fixed it, or we assume the "Install" command failed.
-        // Better: Send a specific command to update env.
-        autoFixCommand = {
-            targetNodeId: nodeId,
-            type: CommandType.RESTART_SERVER,
-            payload: { serverId },
-        };
+        autoFixCommand = { targetNodeId: nodeId, type: CommandType.RESTART_SERVER, payload: { serverId } };
     }
 
-    // RULE 2: Port Conflict
-    else if (logs.includes('address already in use') || logs.includes('bind exception')) {
-        type = TicketType.CONFIG_ERROR;
-        analysis = 'Port binding failed. The port is likely in use by another process.';
-        resolution = 'Escalated to admin to check port allocations.';
+    // 2. MEMORY OVERLOAD (OOM)
+    else if (logs.includes('java.lang.outofmemoryerror') || logs.includes('oom-killer') || logs.includes('failed to allocate memory')) {
+        type = TicketType.RESOURCE_EXHAUSTED;
+        analysis = 'Resource Depletion: Server exceeded allocated RAM limits.';
+        resolution = 'HostBot captured memory dump. Recommend increasing instance RAM block.';
+        status = TicketStatus.OPEN;
+        // No auto-fix possible without upsell/payment, just notify
+    }
+
+    // 3. STORAGE SATURATION (Disk Full)
+    else if (logs.includes('no space left on device') || logs.includes('disk full') || logs.includes('failed to write')) {
+        type = TicketType.RESOURCE_EXHAUSTED;
+        analysis = 'Storage Saturation: Node disk space is at 100%.';
+        resolution = 'Emergency alert sent to fleet ops. Critical disk cleanup required.';
         status = TicketStatus.ESCALATED;
     }
 
-    // RULE 3: Segfault / Crash
-    else if (logs.includes('segmentation fault') || report.exitCode === '139') {
-        type = TicketType.CRASH;
-        analysis = 'Critical binary crash (Segmentation Fault).';
-        resolution = 'Restarting server to attempt recovery.';
-        status = TicketStatus.OPEN; // Keep open to monitor recurrence
+    // 4. DATA CORRUPTION (Minecraft Chunks, ARK Databases)
+    else if (logs.includes('corrupt chunk') || logs.includes('failed to load save') || logs.includes('database error')) {
+        type = TicketType.CONFIG_ERROR;
+        analysis = 'Integrity Failure: Detected corrupted data chunks or database sectors.';
+        resolution = 'Snapshot rollback recommended. Manual operator review required to prevent data loss.';
+        status = TicketStatus.OPEN;
+    }
 
-         autoFixCommand = {
-            targetNodeId: nodeId,
-            type: CommandType.RESTART_SERVER,
-            payload: { serverId },
-        };
+    // 5. NETWORK COLLISION (Port Conflicts)
+    else if (logs.includes('address already in use') || logs.includes('bind exception') || logs.includes('could not bind to port')) {
+        type = TicketType.CONFIG_ERROR;
+        analysis = 'Interface Collision: Assigned port is already bound by a ghost process or concurrent instance.';
+        resolution = 'Attempting port-scrub and process reset.';
+        status = TicketStatus.RESOLVED;
+        autoFixCommand = { targetNodeId: nodeId, type: CommandType.RESTART_SERVER, payload: { serverId } };
+    }
+
+    // 6. BINARY SEGFAULT (C++ Games like ARK, Rust)
+    else if (logs.includes('segmentation fault') || report.exitCode === '139' || logs.includes('sigsegv')) {
+        type = TicketType.CRASH;
+        analysis = 'Binary Instability: Segmentation fault detected in core module.';
+        resolution = 'Hot-swapping instance state and performing cold reboot.';
+        status = TicketStatus.OPEN;
+        autoFixCommand = { targetNodeId: nodeId, type: CommandType.RESTART_SERVER, payload: { serverId } };
+    }
+
+    // 7. PERFORMANCE DEGRADATION (Lag)
+    else if (logs.includes("can't keep up!") || logs.includes('is the server overloaded')) {
+        type = TicketType.UNKNOWN;
+        analysis = 'Performance Anomaly: Server tick-rate dropping below acceptable thresholds.';
+        resolution = 'HostBot monitoring thread priority. Possible CPU contention.';
+        status = TicketStatus.OPEN;
     }
 
     // 3. Create Ticket
