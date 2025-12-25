@@ -99,13 +99,16 @@ export class ServersService {
                   updateData.players = stats.players || [];
                   updateData.playerCount = (stats.players || []).length;
 
-                  // Save Historical Metric
-                  this.metricRepository.save({
-                      serverId: id,
+                  // Save Historical Metric using the found server entity
+                  const metric = this.metricRepository.create({
+                      serverId: server.id,
                       cpuUsage: stats.cpu,
                       ramUsageMb: stats.ram,
                       playerCount: updateData.playerCount
-                  }).catch(err => this.logger.error(`Failed to save metric: ${err.message}`));
+                  });
+                  this.metricRepository.save(metric).catch(err => 
+                      this.logger.error(`Failed to save metric for ${server.name}: ${err.message}`)
+                  );
               }
 
               if (server.status === 'PROVISIONING' && (status === 'STARTING' || status === 'LIVE' || status === 'RUNNING')) {
