@@ -26,7 +26,7 @@ import { TicketsModule } from './tickets/tickets.module';
 import { AiModule } from './ai/ai.module';
 import { Ticket } from './tickets/entities/ticket.entity';
 import { ConsoleModule } from './console/console.module';
-import { AdminModule } from './admin/admin.module';
+import { NotificationModule } from './notifications/notification.module';
 
 @Module({
   imports: [
@@ -37,6 +37,7 @@ import { AdminModule } from './admin/admin.module';
       synchronize: true, // WARNING: Only for Development! Auto-updates DB schema.
     }),
     TypeOrmModule.forFeature([Node, Plan]),
+    NotificationModule,
     NodesModule,
     ServersModule,
     BillingModule,

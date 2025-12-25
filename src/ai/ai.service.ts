@@ -5,6 +5,7 @@ import { ReportIssueDto } from './dto/report-issue.dto';
 import { TicketType, TicketStatus } from '../tickets/entities/ticket.entity';
 import { CommandType } from '../commands/dto/create-command.dto';
 import { ServersService } from '../servers/servers.service';
+import { NotificationService } from '../notifications/notification.service';
 
 @Injectable()
 export class AiService {
@@ -14,6 +15,7 @@ export class AiService {
     private readonly ticketsService: TicketsService,
     private readonly commandsService: CommandsService,
     private readonly serversService: ServersService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async analyzeAndRemediate(nodeId: string, report: ReportIssueDto) {
@@ -60,6 +62,7 @@ export class AiService {
         resolution = 'HostBot captured memory dump. Recommend increasing instance RAM block.';
         status = TicketStatus.OPEN;
         // No auto-fix possible without upsell/payment, just notify
+        this.notificationService.sendAlert('Resource Exhausted', `Server ${containerName} (Node ${nodeId}) OOM.\n${analysis}`, 'WARNING');
     }
 
     // 3. STORAGE SATURATION (Disk Full)
@@ -68,6 +71,7 @@ export class AiService {
         analysis = 'Storage Saturation: Node disk space is at 100%.';
         resolution = 'Emergency alert sent to fleet ops. Critical disk cleanup required.';
         status = TicketStatus.ESCALATED;
+        this.notificationService.sendAlert('CRITICAL: Disk Full', `Node ${nodeId} reports 100% disk usage. Immediate action required.`, 'CRITICAL');
     }
 
     // 4. DATA CORRUPTION (Minecraft Chunks, ARK Databases)
@@ -76,6 +80,7 @@ export class AiService {
         analysis = 'Integrity Failure: Detected corrupted data chunks or database sectors.';
         resolution = 'Snapshot rollback recommended. Manual operator review required to prevent data loss.';
         status = TicketStatus.OPEN;
+        this.notificationService.sendAlert('Data Corruption', `Server ${containerName} reports corruption.\n${analysis}`, 'WARNING');
     }
 
     // 5. NETWORK COLLISION (Port Conflicts)
@@ -94,6 +99,7 @@ export class AiService {
         resolution = 'Hot-swapping instance state and performing cold reboot.';
         status = TicketStatus.OPEN;
         autoFixCommand = { targetNodeId: nodeId, type: CommandType.RESTART_SERVER, payload: { serverId } };
+        this.notificationService.sendAlert('Binary Crash', `Server ${containerName} segfaulted. Auto-reboot initiated.`, 'WARNING');
     }
 
     // 7. PERFORMANCE DEGRADATION (Lag)
