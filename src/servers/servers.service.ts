@@ -9,6 +9,7 @@ import { GamesService } from '../games/games.service';
 import { ModsService } from '../mods/mods.service';
 import { DnsService } from '../dns/dns.service';
 import { Server } from './entities/server.entity';
+import { Metric } from './entities/metric.entity';
 import { nanoid } from 'nanoid';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, Job } from 'bullmq';
@@ -20,6 +21,8 @@ export class ServersService {
   constructor(
     @InjectRepository(Server)
     private serverRepository: Repository<Server>,
+    @InjectRepository(Metric)
+    private metricRepository: Repository<Metric>,
     @Inject(forwardRef(() => NodesService))
     private nodesService: NodesService,
     private commandsService: CommandsService,
@@ -73,16 +76,44 @@ export class ServersService {
           if (stats) {
               updateData.cpuUsage = stats.cpu;
               updateData.ramUsage = stats.ram;
+              updateData.players = stats.players || [];
+              updateData.playerCount = updateData.players.length;
+
+              // Save Historical Metric (Async to not block heartbeat)
+              this.metricRepository.save({
+                  serverId: id,
+                  cpuUsage: stats.cpu,
+                  ramUsageMb: stats.ram,
+                  playerCount: updateData.playerCount
+              }).catch(err => this.logger.error(`Failed to save metric for ${id}: ${err.message}`));
           }
 
           const server = await this.serverRepository.findOneBy({ id });
-          if (server && server.status === 'PROVISIONING' && (status === 'STARTING' || status === 'LIVE' || status === 'RUNNING')) {
-              this.logger.log(`Server ${id} (${server.name}) detected as active on Node. Transitioning from PROVISIONING to LIVE.`);
-              updateData.status = 'LIVE';
-              updateData.progress = 100;
-          }
-
           if (server) {
+              const stats = usage.containerStats?.[id];
+              const updateData: any = { status: status === 'RUNNING' ? 'LIVE' : status };
+              
+              if (stats) {
+                  updateData.cpuUsage = stats.cpu;
+                  updateData.ramUsage = stats.ram;
+                  updateData.players = stats.players || [];
+                  updateData.playerCount = (stats.players || []).length;
+
+                  // Save Historical Metric
+                  this.metricRepository.save({
+                      serverId: id,
+                      cpuUsage: stats.cpu,
+                      ramUsageMb: stats.ram,
+                      playerCount: updateData.playerCount
+                  }).catch(err => this.logger.error(`Failed to save metric: ${err.message}`));
+              }
+
+              if (server.status === 'PROVISIONING' && (status === 'STARTING' || status === 'LIVE' || status === 'RUNNING')) {
+                  this.logger.log(`Server ${id} (${server.name}) detected as active. Transitioning to LIVE.`);
+                  updateData.status = 'LIVE';
+                  updateData.progress = 100;
+              }
+
               await this.serverRepository.update({ id }, updateData);
           }
       }
@@ -262,5 +293,13 @@ export class ServersService {
 
     await this.serverRepository.remove(server);
     return { status: 'deleted' };
+  }
+
+  async getMetrics(id: string) {
+      return this.metricRepository.find({
+          where: { serverId: id },
+          order: { timestamp: 'DESC' },
+          take: 100
+      });
   }
 }

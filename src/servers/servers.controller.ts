@@ -20,6 +20,11 @@ export class ServersController {
     return this.serversService.findOne(id);
   }
 
+  @Get(':id/metrics')
+  getMetrics(@Param('id') id: string) {
+    return this.serversService.getMetrics(id);
+  }
+
   @Post()
   create(@Body() createServerDto: CreateServerDto) {
     return this.serversService.deployServer(createServerDto);

@@ -61,10 +61,13 @@ export class Server {
   ramUsage!: number; // In MB
 
   @Column({ default: 0 })
-  progress!: number; // 0-100 for deployment progress
+  progress: number;
+
+  @Column({ type: 'simple-json', nullable: true })
+  players: { name: string; ping: number; joinedAt: string }[];
 
   @CreateDateColumn()
-  createdAt!: Date;
+  createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt!: Date;
