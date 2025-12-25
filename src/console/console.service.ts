@@ -14,7 +14,7 @@ export class ConsoleService implements OnModuleInit {
 
   onModuleInit() {
     this.redis = new Redis({
-        host: 'localhost',
+        host: '127.0.0.1',
         port: 6379,
     });
 
