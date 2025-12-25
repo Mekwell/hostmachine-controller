@@ -58,7 +58,7 @@ export class ServersService {
    */
   async updateStatusFromHeartbeat(usage: any) {
       const containerStates = usage.containerStates || {};
-      const runningIds = Object.keys(containerStates);
+      const runningIds = Object.keys(containerStates).filter(id => id !== 'none' && id.length > 5);
       
       // 1. Mark missing servers as OFFLINE
       await this.serverRepository.createQueryBuilder()
@@ -70,23 +70,7 @@ export class ServersService {
 
       // 2. Update status for active containers
       for (const [id, status] of Object.entries(containerStates)) {
-          const stats = usage.containerStats?.[id];
-          const updateData: any = { status: status === 'RUNNING' ? 'LIVE' : status };
-          
-          if (stats) {
-              updateData.cpuUsage = stats.cpu;
-              updateData.ramUsage = stats.ram;
-              updateData.players = stats.players || [];
-              updateData.playerCount = updateData.players.length;
-
-              // Save Historical Metric (Async to not block heartbeat)
-              this.metricRepository.save({
-                  serverId: id,
-                  cpuUsage: stats.cpu,
-                  ramUsageMb: stats.ram,
-                  playerCount: updateData.playerCount
-              }).catch(err => this.logger.error(`Failed to save metric for ${id}: ${err.message}`));
-          }
+          if (id === 'none') continue;
 
           const server = await this.serverRepository.findOneBy({ id });
           if (server) {
@@ -118,6 +102,9 @@ export class ServersService {
               }
 
               await this.serverRepository.update({ id }, updateData);
+          } else {
+              // Optionally log unknown containers once, but don't spam DB
+              // this.logger.warn(`Heartbeat reported unknown container: ${id}`);
           }
       }
   }
