@@ -10,15 +10,15 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  async findOne(email: string): Promise<User | undefined> {
+  async findOne(email: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { email } });
   }
 
-  async findById(id: string): Promise<User | undefined> {
+  async findById(id: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { id } });
   }
 
-  async findByVerificationToken(token: string): Promise<User | undefined> {
+  async findByVerificationToken(token: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { verificationToken: token } });
   }
 

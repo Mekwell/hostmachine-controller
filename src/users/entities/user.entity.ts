@@ -18,7 +18,7 @@ export class User {
   isVerified: boolean;
 
   @Column({ nullable: true })
-  verificationToken: string;
+  verificationToken: string | null;
 
   @CreateDateColumn()
   createdAt: Date;

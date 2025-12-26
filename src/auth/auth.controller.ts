@@ -7,7 +7,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('login')
-  async login(@Body() req) {
+  async login(@Body() req: any) {
     const user = await this.authService.validateUser(req.email, req.password);
     if (!user) {
         return { status: 'error', message: 'Invalid credentials' };
@@ -16,7 +16,7 @@ export class AuthController {
   }
 
   @Post('register')
-  async register(@Body() req) {
+  async register(@Body() req: any) {
     return this.authService.register(req.email, req.password);
   }
 
