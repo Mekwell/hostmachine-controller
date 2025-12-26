@@ -17,8 +17,8 @@ export class User {
   @Column({ default: false })
   isVerified: boolean;
 
-  @Column({ nullable: true, type: 'text' })
-  verificationToken: string | null;
+  @Column({ nullable: true })
+  verificationToken: string;
 
   @CreateDateColumn()
   createdAt: Date;

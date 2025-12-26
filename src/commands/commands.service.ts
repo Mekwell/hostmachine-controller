@@ -101,7 +101,7 @@ export class CommandsService {
     return this.waitForResult(cmd.id);
   }
 
-  async waitForResult(commandId: string, timeoutMs: number = 15000): Promise<any> {
+  async waitForResult(commandId: string, timeoutMs: number = 60000): Promise<any> {
       return new Promise((resolve, reject) => {
           let attempts = 0;
           const interval = setInterval(() => {
