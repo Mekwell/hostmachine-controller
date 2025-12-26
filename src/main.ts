@@ -14,9 +14,15 @@ async function bootstrap() {
     forbidNonWhitelisted: false,
   })); */
 
-  // Enable CORS for Frontend development
+  // Enable CORS for Frontend
   app.enableCors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'], // Allow Next.js frontend
+    origin: [
+        'http://localhost:3000', 
+        'http://localhost:3001', 
+        'http://localhost:3002',
+        'https://hostmachine.com.au',
+        'https://www.hostmachine.com.au'
+    ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
