@@ -67,7 +67,7 @@ export class ServersService {
           .update()
           .set({ status: 'OFFLINE', playerCount: 0, cpuUsage: 0, ramUsage: 0 })
           .where("id NOT IN (:...ids)", { ids: runningIds.length > 0 ? runningIds : ['none'] })
-          .andWhere("status NOT IN ('OFFLINE', 'PROVISIONING', 'STOPPED')")
+          .andWhere("status NOT IN ('OFFLINE', 'STOPPED')")
           .execute();
 
       // 2. Efficiently update active containers
