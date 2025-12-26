@@ -244,24 +244,47 @@ export class ServersService {
   }
 
   async setServerStatus(id: string, action: 'start' | 'stop' | 'restart') {
-    const server = await this.serverRepository.findOneBy({ id });
+    const server = await this.serverRepository.findOne({ 
+        where: { id },
+        relations: ['node']
+    });
     if (!server) throw new BadRequestException('Server not found');
 
-    let newStatus = server.status;
+    let newStatus: string = server.status;
     let commandType = CommandType.START_SERVER;
+    let payload: any = { serverId: server.id };
 
     if (action === 'stop') {
         newStatus = 'STOPPED';
         commandType = CommandType.STOP_SERVER;
-    } else if (action === 'restart') {
-        newStatus = 'PROVISIONING';
-        commandType = CommandType.RESTART_SERVER;
+        payload.containerId = server.id;
+    } else if (action === 'start' || action === 'restart') {
+        newStatus = 'STARTING';
+        commandType = action === 'restart' ? CommandType.RESTART_SERVER : CommandType.START_SERVER;
+        
+        // Find game template for default port
+        const template = this.gamesService.findOne(server.gameType);
+        
+        payload = {
+            serverId: server.id,
+            image: server.dockerImage,
+            port: server.port,
+            internalPort: template?.defaultPort || 25565,
+            memoryLimitMb: server.memoryLimitMb,
+            env: [
+                ...(template?.defaultEnv || []),
+                ...(server.env || []),
+                `IP=${server.node?.vpnIp || '0.0.0.0'}`,
+                `PORT=${server.port}`
+            ],
+            bindIp: server.node?.vpnIp || '0.0.0.0'
+        };
     }
 
     await this.commandsService.create({
         targetNodeId: server.nodeId,
         type: commandType,
-        payload: { serverId: server.id }
+        payload
     });
 
     server.status = newStatus;
