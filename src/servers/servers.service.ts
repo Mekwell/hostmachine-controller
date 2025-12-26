@@ -60,7 +60,9 @@ export class ServersService {
       const containerStates = usage.containerStates || {};
       const runningIds = Object.keys(containerStates).filter(id => id !== 'none' && id.length > 5);
       
-      // 1. Mark missing servers as OFFLINE
+      this.logger.log(`Processing heartbeat for ${runningIds.length} containers...`);
+
+      // 1. Mark missing servers as OFFLINE (Only those not already offline/stopped)
       await this.serverRepository.createQueryBuilder()
           .update()
           .set({ status: 'OFFLINE', playerCount: 0, cpuUsage: 0, ramUsage: 0 })
@@ -68,43 +70,43 @@ export class ServersService {
           .andWhere("status NOT IN ('OFFLINE', 'PROVISIONING', 'STOPPED')")
           .execute();
 
-      // 2. Update status for active containers
-      for (const [id, status] of Object.entries(containerStates)) {
-          if (id === 'none') continue;
+      // 2. Efficiently update active containers
+      if (runningIds.length === 0) return;
 
-          const server = await this.serverRepository.findOneBy({ id });
-          if (server) {
-              const stats = usage.containerStats?.[id];
-              const updateData: any = { status: status === 'RUNNING' ? 'LIVE' : status };
-              
-              if (stats) {
-                  updateData.cpuUsage = stats.cpu;
-                  updateData.ramUsage = stats.ram;
-                  updateData.players = stats.players || [];
-                  updateData.playerCount = (stats.players || []).length;
+      // Fetch current state of all reported servers in one go
+      const activeServers = await this.serverRepository.findBy({ id: In(runningIds) });
+      
+      for (const server of activeServers) {
+          const newStatusRaw = containerStates[server.id];
+          const newStatus = newStatusRaw === 'RUNNING' ? 'LIVE' : newStatusRaw;
+          const stats = usage.containerStats?.[server.id];
+          
+          let hasChanges = false;
+          const updateData: any = {};
 
-                  // Save Historical Metric using the found server entity
-                  /* const metric = this.metricRepository.create({
-                      serverId: server.id,
-                      cpuUsage: stats.cpu,
-                      ramUsageMb: stats.ram,
-                      playerCount: updateData.playerCount
-                  });
-                  this.metricRepository.save(metric).catch(err => 
-                      this.logger.error(`Failed to save metric for ${server.name}: ${err.message}`)
-                  ); */
+          if (server.status !== newStatus) {
+              updateData.status = newStatus;
+              hasChanges = true;
+          }
+
+          if (stats) {
+              const newPlayerCount = (stats.players || []).length;
+              if (server.playerCount !== newPlayerCount) {
+                  updateData.playerCount = newPlayerCount;
+                  hasChanges = true;
               }
+              // We skip high-frequency CPU/RAM updates in DB to save I/O
+              // These should be handled by WebSockets only
+          }
 
-              if (server.status === 'PROVISIONING' && (status === 'STARTING' || status === 'LIVE' || status === 'RUNNING')) {
-                  this.logger.log(`Server ${id} (${server.name}) detected as active. Transitioning to LIVE.`);
-                  updateData.status = 'LIVE';
-                  updateData.progress = 100;
-              }
+          if (server.status === 'PROVISIONING' && (newStatus === 'STARTING' || newStatus === 'LIVE')) {
+              updateData.status = 'LIVE';
+              updateData.progress = 100;
+              hasChanges = true;
+          }
 
-              await this.serverRepository.update({ id }, updateData);
-          } else {
-              // Optionally log unknown containers once, but don't spam DB
-              // this.logger.warn(`Heartbeat reported unknown container: ${id}`);
+          if (hasChanges) {
+              await this.serverRepository.update({ id: server.id }, updateData);
           }
       }
   }
