@@ -7,7 +7,6 @@ import { ConsoleService } from './console.service';
   cors: {
     origin: '*',
   },
-  namespace: 'console',
 })
 export class ConsoleGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
