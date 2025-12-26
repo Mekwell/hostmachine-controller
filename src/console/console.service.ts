@@ -18,17 +18,22 @@ export class ConsoleService implements OnModuleInit {
         port: 6379,
     });
 
-    this.redis.psubscribe('logs:*', (err, count) => {
-        if (err) this.logger.error('Failed to subscribe to Redis logs', err);
-        else this.logger.log(`Subscribed to ${count} Redis log channels.`);
+    this.redis.psubscribe('logs:*', 'stats:*', (err, count) => {
+        if (err) this.logger.error('Failed to subscribe to Redis channels', err);
+        else this.logger.log(`Subscribed to ${count} Redis log/stats channels.`);
     });
 
     this.redis.on('pmessage', (pattern, channel, message) => {
-        // channel = "logs:<server_id>"
-        const serverId = channel.split(':')[1];
+        const [type, serverId] = channel.split(':');
         if (serverId) {
-            // Emit to WebSocket Room
-            this.gateway.server.to(`server:${serverId}`).emit('log', message);
+            if (type === 'logs') {
+                this.gateway.server.to(`server:${serverId}`).emit('log', message);
+            } else if (type === 'stats') {
+                try {
+                    const stats = JSON.parse(message);
+                    this.gateway.server.to(`server:${serverId}`).emit('stats', stats);
+                } catch (e) {}
+            }
         }
     });
   }

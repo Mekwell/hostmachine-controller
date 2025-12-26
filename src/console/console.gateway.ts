@@ -40,4 +40,9 @@ export class ConsoleGateway implements OnGatewayConnection, OnGatewayDisconnect 
       // Broadcast to all clients watching this server
       this.server.to(`server:${payload.serverId}`).emit('log', payload.data);
   }
+
+  @SubscribeMessage('stats-push')
+  handleStatsPush(client: Socket, payload: { serverId: string, stats: any }) {
+      this.server.to(`server:${payload.serverId}`).emit('stats', payload.stats);
+  }
 }
