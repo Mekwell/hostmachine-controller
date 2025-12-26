@@ -5,19 +5,19 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true, type: 'text' })
   email: string;
 
-  @Column()
+  @Column({ type: 'text' })
   passwordHash: string;
 
-  @Column({ default: 'user' })
+  @Column({ default: 'user', type: 'text' })
   role: string; // 'user' | 'admin'
 
   @Column({ default: false })
   isVerified: boolean;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'text' })
   verificationToken: string | null;
 
   @CreateDateColumn()
