@@ -139,15 +139,36 @@ export class AiService {
     }
 
     // 5. Execute Auto-Fix
-    if (autoFixCommand) {
+    if (autoFixCommand && serverId) {
         this.logger.log(`HostBot executing auto-fix [${analysis}] for Ticket ${ticket.id}`);
+        
+        // --- VISIBLE FEEDBACK ---
+        // Update server status to show HostBot is working
+        try {
+            await this.serverRepository.update({ id: serverId }, {
+                status: 'REMEDIATING',
+                // We'll use the 'progress' field or a temporary name change to indicate action
+                name: `${server?.name || 'Server'} [HostBot: ${analysis}]`
+            });
+            
+            // Restore name after 10 seconds (enough for user to see on dashboard)
+            const originalName = server?.name;
+            if (originalName) {
+                setTimeout(async () => {
+                    await this.serverRepository.update({ id: serverId! }, { name: originalName });
+                }, 10000);
+            }
+        } catch (e) {
+            this.logger.error(`Failed to update visible HostBot status: ${e.message}`);
+        }
+
         await this.commandsService.create(autoFixCommand);
     }
 
     return {
         ticketId: ticket.id,
         analysis,
-        action: autoFixCommand ? 'Auto-Fix Initiated' : 'Ticket Created',
+        action: autoFixCommand ? `HostBot: ${resolution}` : 'Ticket Created',
     };
   }
 }
