@@ -211,6 +211,7 @@ export class ServersService {
                 env: [
                     ...template.defaultEnv, 
                     ...(dto.env || []),
+                    `SERVER_ID=${savedServer.id}`,
                     `IP=${targetNode.vpnIp || '0.0.0.0'}`,
                     `PORT=${port}`
                 ],
@@ -274,6 +275,7 @@ export class ServersService {
             env: [
                 ...(template?.defaultEnv || []),
                 ...(server.env || []),
+                `SERVER_ID=${server.id}`,
                 `IP=${server.node?.vpnIp || '0.0.0.0'}`,
                 `PORT=${server.port}`
             ],
