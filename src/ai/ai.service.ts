@@ -1,10 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { TicketsService } from '../tickets/tickets.service';
 import { CommandsService } from '../commands/commands.service';
 import { ReportIssueDto } from './dto/report-issue.dto';
 import { TicketType, TicketStatus } from '../tickets/entities/ticket.entity';
 import { CommandType } from '../commands/dto/create-command.dto';
 import { ServersService } from '../servers/servers.service';
+import { Server } from '../servers/entities/server.entity';
 import { NotificationService } from '../notifications/notification.service';
 
 @Injectable()
@@ -12,6 +15,8 @@ export class AiService {
   private readonly logger = new Logger(AiService.name);
 
   constructor(
+    @InjectRepository(Server)
+    private readonly serverRepository: Repository<Server>,
     private readonly ticketsService: TicketsService,
     private readonly commandsService: CommandsService,
     private readonly serversService: ServersService,
