@@ -58,13 +58,21 @@ export class NodesService {
     return this.nodesRepository.findOneBy({ id });
   }
 
+  private lastSeenCache: Record<string, number> = {};
+
   async validateApiKey(nodeId: string, apiKey: string): Promise<boolean> {
       const node = await this.nodesRepository.findOneBy({ id: nodeId });
       if (node && node.apiKey === apiKey) {
-          // Update last seen
-          node.lastSeen = new Date();
-          node.status = 'ONLINE';
-          await this.nodesRepository.save(node);
+          const now = Date.now();
+          const lastUpdate = this.lastSeenCache[nodeId] || 0;
+
+          // Only write to DB if last update was > 60s ago to prevent event loop blocking
+          if (now - lastUpdate > 60000) {
+              node.lastSeen = new Date();
+              node.status = 'ONLINE';
+              await this.nodesRepository.save(node);
+              this.lastSeenCache[nodeId] = now;
+          }
           return true;
       }
       return false;
