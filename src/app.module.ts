@@ -33,6 +33,8 @@ import { User } from './users/entities/user.entity';
 import { EmailTemplate } from './notifications/entities/email-template.entity';
 import { UsersModule } from './users/users.module';
 
+import { RedisModule } from './redis/redis.module';
+
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -42,6 +44,7 @@ import { UsersModule } from './users/users.module';
       synchronize: true, // WARNING: Only for Development! Auto-updates DB schema.
     }),
     TypeOrmModule.forFeature([Node, Plan]),
+    RedisModule,
     NotificationModule,
     UsersModule,
     NodesModule,

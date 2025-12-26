@@ -9,6 +9,7 @@ import { CommandType } from '../commands/dto/create-command.dto';
 import { ServersService } from '../servers/servers.service';
 import { Server } from '../servers/entities/server.entity';
 import { NotificationService } from '../notifications/notification.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class AiService {
@@ -21,9 +22,16 @@ export class AiService {
     private readonly commandsService: CommandsService,
     private readonly serversService: ServersService,
     private readonly notificationService: NotificationService,
+    private readonly redisService: RedisService,
   ) {}
 
   private remediationAttempts: Map<string, number> = new Map();
+
+  private async announceToTerminal(serverId: string, message: string) {
+      // Send a color-coded message to the live terminal
+      const formatted = `\r\n\x1b[35m[HostBot]\x1b[0m \x1b[1m${message}\x1b[0m\r\n`;
+      await this.redisService.publish(`logs:${serverId}`, formatted);
+  }
 
   async analyzeAndRemediate(nodeId: string, report: ReportIssueDto) {
     this.logger.log(`HostBot analyzing issue from Node ${nodeId} for container ${report.containerName}`);
@@ -66,6 +74,7 @@ export class AiService {
         resolution = 'HostBot automatically injected EULA acceptance and signaled a reboot.';
         status = TicketStatus.RESOLVED;
         autoFixCommand = { targetNodeId: nodeId, type: CommandType.RESTART_SERVER, payload: { serverId } };
+        if (serverId) await this.announceToTerminal(serverId, 'Detected missing EULA agreement. Injecting EULA=TRUE and restarting...');
     }
 
     // 2. RESOURCE EXHAUSTION (RAM/DISK)
@@ -75,6 +84,7 @@ export class AiService {
         resolution = 'Immediate alert sent. Recommend vertical scaling.';
         status = TicketStatus.ESCALATED;
         this.notificationService.sendAlert(`CRITICAL: ${analysis}`, `Node ${nodeId} / Server ${containerName} is out of resources.`, 'CRITICAL');
+        if (serverId) await this.announceToTerminal(serverId, `CRITICAL: Server crashed due to ${analysis}. Manual intervention required.`);
     }
 
     // 3. GAME-SPECIFIC: VALHEIM / WORLD LOCKS
@@ -89,6 +99,7 @@ export class AiService {
             type: CommandType.EXEC_COMMAND, 
             payload: { serverId, command: 'rm -f /data/*.lock' } 
         };
+        if (serverId) await this.announceToTerminal(serverId, 'Detected World Database Lock. Attempting to clear .lock files...');
     }
 
     // 4. NETWORK COLLISIONS
@@ -98,6 +109,7 @@ export class AiService {
         resolution = 'Port conflict found. HostBot is resetting the networking stack for this server.';
         status = TicketStatus.RESOLVED;
         autoFixCommand = { targetNodeId: nodeId, type: CommandType.RESTART_SERVER, payload: { serverId } };
+        if (serverId) await this.announceToTerminal(serverId, 'Detected Port Collision. Resetting network bridge...');
     }
 
     // 5. BINARY CRASHES (Segfaults)
@@ -108,6 +120,7 @@ export class AiService {
         status = TicketStatus.OPEN;
         autoFixCommand = { targetNodeId: nodeId, type: CommandType.RESTART_SERVER, payload: { serverId } };
         this.notificationService.sendAlert('Binary Crash', `Server ${server?.name || containerName} segfaulted.`, 'WARNING');
+        if (serverId) await this.announceToTerminal(serverId, 'Detected Binary Segmentation Fault. Initiating emergency reboot...');
     }
 
     // 6. STEAMCMD SYNC FAILURES
@@ -121,6 +134,7 @@ export class AiService {
             type: CommandType.EXEC_COMMAND, 
             payload: { serverId, command: 'rm -rf /home/steam/Steam/appcache' } 
         };
+        if (serverId) await this.announceToTerminal(serverId, 'SteamCMD Sync Failure detected. Clearing local cache and retrying...');
     }
 
     // 3. Create Ticket
