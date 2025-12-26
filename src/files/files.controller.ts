@@ -17,6 +17,11 @@ export class FilesController {
     return this.filesService.getFileContent(serverId, path);
   }
 
+  @Get('logs')
+  getLogs(@Query('serverId') serverId: string) {
+    return this.filesService.getLogs(serverId);
+  }
+
   @Post('write')
   writeFile(@Body() body: { serverId: string; path: string; content: string }) {
     return this.filesService.writeFileContent(body.serverId, body.path, body.content);
