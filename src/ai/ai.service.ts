@@ -18,24 +18,32 @@ export class AiService {
     private readonly notificationService: NotificationService,
   ) {}
 
+  private remediationAttempts: Map<string, number> = new Map();
+
   async analyzeAndRemediate(nodeId: string, report: ReportIssueDto) {
     this.logger.log(`HostBot analyzing issue from Node ${nodeId} for container ${report.containerName}`);
     
-    // 1. Identify Server ID
     const containerName = report.containerName;
     let serverId: string | undefined = undefined;
+    let server: any = null;
     
-    // Check if container name is a valid server ID in our DB
     try {
-        const server = await this.serversService.findOne(containerName);
+        server = await this.serversService.findOne(containerName);
         if (server) {
             serverId = server.id;
         }
-    } catch (e) {
-        // Not a known server ID, keep as undefined
+    } catch (e) {}
+
+    // --- REBOOT LOOP PREVENTION ---
+    if (serverId) {
+        const attempts = this.remediationAttempts.get(serverId) || 0;
+        if (attempts >= 3) {
+            this.logger.warn(`HostBot: Remediation loop detected for ${server?.name}. Escalating.`);
+            await this.notificationService.sendAlert('REMEDIATION LOOP', `Server ${server?.name} has crashed 3 times in a row. Auto-fix paused for manual review.`, 'CRITICAL');
+            return { action: 'Escalated to Admin (Loop Prevention)' };
+        }
     }
 
-    // 2. Pattern Matching (The "Brain")
     let type = TicketType.UNKNOWN;
     let analysis = 'Unknown error pattern.';
     let resolution = 'Ticket created. Waiting for admin.';
@@ -44,9 +52,9 @@ export class AiService {
 
     const logs = report.logs.toLowerCase();
 
-    // --- REFINED REMEDIATION MATRIX ---
+    // --- ENHANCED REMEDIATION MATRIX ---
 
-    // 1. EULA / AGREEMENT FAILURE (Minecraft, SteamCMD)
+    // 1. EULA / AGREEMENT
     if (logs.includes('eula') && (logs.includes('agree') || logs.includes('false'))) {
         type = TicketType.CONFIG_ERROR;
         analysis = 'Protocol Breach: EULA not accepted.';
@@ -55,65 +63,65 @@ export class AiService {
         autoFixCommand = { targetNodeId: nodeId, type: CommandType.RESTART_SERVER, payload: { serverId } };
     }
 
-    // 2. MEMORY OVERLOAD (OOM)
-    else if (logs.includes('java.lang.outofmemoryerror') || logs.includes('oom-killer') || logs.includes('failed to allocate memory')) {
+    // 2. RESOURCE EXHAUSTION (RAM/DISK)
+    else if (/outofmemory|oom-killer|failed to allocate|no space left/i.test(logs)) {
         type = TicketType.RESOURCE_EXHAUSTED;
-        analysis = 'Resource Depletion: Server exceeded allocated RAM limits.';
-        resolution = 'HostBot captured memory dump. Recommend increasing instance RAM block.';
-        status = TicketStatus.OPEN;
-        // No auto-fix possible without upsell/payment, just notify
-        this.notificationService.sendAlert('Resource Exhausted', `Server ${containerName} (Node ${nodeId}) OOM.\n${analysis}`, 'WARNING');
-    }
-
-    // 3. STORAGE SATURATION (Disk Full)
-    else if (logs.includes('no space left on device') || logs.includes('disk full') || logs.includes('failed to write')) {
-        type = TicketType.RESOURCE_EXHAUSTED;
-        analysis = 'Storage Saturation: Node disk space is at 100%.';
-        resolution = 'Emergency alert sent to fleet ops. Critical disk cleanup required.';
+        analysis = logs.includes('space') ? 'Storage Saturation' : 'Memory Depletion';
+        resolution = 'Immediate alert sent. Recommend vertical scaling.';
         status = TicketStatus.ESCALATED;
-        this.notificationService.sendAlert('CRITICAL: Disk Full', `Node ${nodeId} reports 100% disk usage. Immediate action required.`, 'CRITICAL');
+        this.notificationService.sendAlert(`CRITICAL: ${analysis}`, `Node ${nodeId} / Server ${containerName} is out of resources.`, 'CRITICAL');
     }
 
-    // 4. DATA CORRUPTION (Minecraft Chunks, ARK Databases)
-    else if (logs.includes('corrupt chunk') || logs.includes('failed to load save') || logs.includes('database error')) {
+    // 3. GAME-SPECIFIC: VALHEIM / WORLD LOCKS
+    else if (logs.includes('failed to load') && logs.includes('.db')) {
         type = TicketType.CONFIG_ERROR;
-        analysis = 'Integrity Failure: Detected corrupted data chunks or database sectors.';
-        resolution = 'Snapshot rollback recommended. Manual operator review required to prevent data loss.';
-        status = TicketStatus.OPEN;
-        this.notificationService.sendAlert('Data Corruption', `Server ${containerName} reports corruption.\n${analysis}`, 'WARNING');
+        analysis = 'Data Integrity: World database lock or corruption.';
+        resolution = 'World lock detected. HostBot is attempting to clear temporary lock files.';
+        status = TicketStatus.RESOLVED;
+        // Logic: Send command to delete .lock files
+        autoFixCommand = { 
+            targetNodeId: nodeId, 
+            type: CommandType.EXEC_COMMAND, 
+            payload: { serverId, command: 'rm -f /data/*.lock' } 
+        };
     }
 
-    // 5. NETWORK COLLISION (Port Conflicts)
-    else if (logs.includes('address already in use') || logs.includes('bind exception') || logs.includes('could not bind to port')) {
+    // 4. NETWORK COLLISIONS
+    else if (/address already in use|bind exception|could not bind/i.test(logs)) {
         type = TicketType.CONFIG_ERROR;
-        analysis = 'Interface Collision: Assigned port is already bound by a ghost process or concurrent instance.';
-        resolution = 'Attempting port-scrub and process reset.';
+        analysis = 'Interface Collision: Port conflict detected.';
+        resolution = 'Port conflict found. HostBot is resetting the networking stack for this server.';
         status = TicketStatus.RESOLVED;
         autoFixCommand = { targetNodeId: nodeId, type: CommandType.RESTART_SERVER, payload: { serverId } };
     }
 
-    // 6. BINARY SEGFAULT (C++ Games like ARK, Rust)
-    else if (logs.includes('segmentation fault') || report.exitCode === '139' || logs.includes('sigsegv')) {
+    // 5. BINARY CRASHES (Segfaults)
+    else if (logs.includes('segmentation fault') || report.exitCode === '139') {
         type = TicketType.CRASH;
-        analysis = 'Binary Instability: Segmentation fault detected in core module.';
-        resolution = 'Hot-swapping instance state and performing cold reboot.';
+        analysis = 'Binary Instability: Segmentation fault.';
+        resolution = 'Cold reboot initiated. Logs archived for developer review.';
         status = TicketStatus.OPEN;
         autoFixCommand = { targetNodeId: nodeId, type: CommandType.RESTART_SERVER, payload: { serverId } };
-        this.notificationService.sendAlert('Binary Crash', `Server ${containerName} segfaulted. Auto-reboot initiated.`, 'WARNING');
+        this.notificationService.sendAlert('Binary Crash', `Server ${server?.name || containerName} segfaulted.`, 'WARNING');
     }
 
-    // 7. PERFORMANCE DEGRADATION (Lag)
-    else if (logs.includes("can't keep up!") || logs.includes('is the server overloaded')) {
-        type = TicketType.UNKNOWN;
-        analysis = 'Performance Anomaly: Server tick-rate dropping below acceptable thresholds.';
-        resolution = 'HostBot monitoring thread priority. Possible CPU contention.';
-        status = TicketStatus.OPEN;
+    // 6. STEAMCMD SYNC FAILURES
+    else if (logs.includes('failed to install app') || logs.includes('missing configuration')) {
+        type = TicketType.CONFIG_ERROR;
+        analysis = 'Provisioning Failure: SteamCMD sync failed.';
+        resolution = 'HostBot is clearing the SteamCMD cache and retrying synchronization.';
+        status = TicketStatus.RESOLVED;
+        autoFixCommand = { 
+            targetNodeId: nodeId, 
+            type: CommandType.EXEC_COMMAND, 
+            payload: { serverId, command: 'rm -rf /home/steam/Steam/appcache' } 
+        };
     }
 
     // 3. Create Ticket
     const ticket = await this.ticketsService.create({
         nodeId,
-        serverId: serverId, // Might need validation if it's a real UUID
+        serverId: serverId,
         type,
         logs: report.logs,
         aiAnalysis: analysis,
@@ -121,9 +129,18 @@ export class AiService {
         status,
     });
 
-    // 4. Execute Auto-Fix
+    // 4. Track attempts
+    if (serverId && autoFixCommand) {
+        const attempts = (this.remediationAttempts.get(serverId) || 0) + 1;
+        this.remediationAttempts.set(serverId, attempts);
+        
+        // Reset attempts after 1 hour of stability
+        setTimeout(() => this.remediationAttempts.delete(serverId!), 3600000);
+    }
+
+    // 5. Execute Auto-Fix
     if (autoFixCommand) {
-        this.logger.log(`HostBot executing auto-fix for Ticket ${ticket.id}`);
+        this.logger.log(`HostBot executing auto-fix [${analysis}] for Ticket ${ticket.id}`);
         await this.commandsService.create(autoFixCommand);
     }
 
@@ -133,4 +150,5 @@ export class AiService {
         action: autoFixCommand ? 'Auto-Fix Initiated' : 'Ticket Created',
     };
   }
+}
 }
