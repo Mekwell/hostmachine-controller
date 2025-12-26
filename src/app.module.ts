@@ -29,16 +29,21 @@ import { ConsoleModule } from './console/console.module';
 import { AdminModule } from './admin/admin.module';
 import { NotificationModule } from './notifications/notification.module';
 
+import { User } from './users/entities/user.entity';
+import { EmailTemplate } from './notifications/entities/email-template.entity';
+import { UsersModule } from './users/users.module';
+
 @Module({
   imports: [
     TypeOrmModule.forRoot({
       type: 'sqlite',
       database: 'hostmachine.sqlite',
-      entities: [Node, Plan, Subscription, Server, Metric, Backup, Ticket],
+      entities: [Node, Plan, Subscription, Server, Metric, Backup, Ticket, User, EmailTemplate],
       synchronize: true, // WARNING: Only for Development! Auto-updates DB schema.
     }),
     TypeOrmModule.forFeature([Node, Plan]),
     NotificationModule,
+    UsersModule,
     NodesModule,
     ServersModule,
     BillingModule,
