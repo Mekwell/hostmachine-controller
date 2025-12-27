@@ -33,11 +33,22 @@ export class GamesService {
     { id: 'pz', name: 'Project Zomboid', type: 'pz', category: 'game', dockerImage: 'gameservermanagers/gameserver:pz', defaultPort: 16261, defaultEnv: [], icon: '🧟', banner: '/banners/pz.jpg', description: 'Zombie RPG.', variables: [], requiredOs: 'linux' },
     { id: 'tf2', name: 'Team Fortress 2', type: 'tf2', category: 'game', dockerImage: 'gameservermanagers/gameserver:tf2', defaultPort: 27015, defaultEnv: [], icon: '🎩', banner: '/banners/tf2.jpg', description: 'Arena shooter.', variables: [], requiredOs: 'linux' },
     { id: 'l4d2', name: 'Left 4 Dead 2', type: 'l4d2', category: 'game', dockerImage: 'gameservermanagers/gameserver:l4d2', defaultPort: 27015, defaultEnv: [], icon: '🧟', banner: '/banners/l4d2.jpg', description: 'Coop shooter.', variables: [], requiredOs: 'linux' },
-    { id: 'minecraft', name: 'Minecraft (Java)', type: 'mc', category: 'game', dockerImage: 'hostmachine/game-minecraft:latest', defaultPort: 25565, defaultEnv: ["MEMORY=2048", "MOTD=A HostMachine World", "DIFFICULTY=1", "MAX_PLAYERS=20", "EULA=TRUE"], icon: '⛏️', banner: '/banners/mc.jpg', description: 'PaperMC high-perf server.', variables: [
+    { id: 'minecraft-java', name: 'Minecraft (Java)', type: 'mc', category: 'game', dockerImage: 'hostmachine/game-minecraft:latest', defaultPort: 25565, defaultEnv: ["MEMORY=2048", "MOTD=A HostMachine World", "DIFFICULTY=1", "MAX_PLAYERS=20", "EULA=TRUE"], icon: '⛏️', banner: '/banners/mc.jpg', description: 'PaperMC high-perf server.', variables: [
         { name: 'Memory (MB)', description: 'Total RAM for the JVM', envVar: 'MEMORY', defaultValue: '2048', type: 'number' },
         { name: 'MOTD', description: 'Server list message', envVar: 'MOTD', defaultValue: 'A HostMachine World', type: 'string' },
         { name: 'Difficulty', description: '0=Peaceful, 1=Easy, 2=Normal, 3=Hard', envVar: 'DIFFICULTY', defaultValue: '1', type: 'enum', options: ['0', '1', '2', '3'] },
         { name: 'Max Players', description: 'Concurrent slot limit', envVar: 'MAX_PLAYERS', defaultValue: '20', type: 'number' },
+        { name: 'Accept EULA', description: 'Must be TRUE to run', envVar: 'EULA', defaultValue: 'TRUE', type: 'boolean' }
+    ], requiredOs: 'linux' },
+    { id: 'minecraft-bedrock', name: 'Minecraft (Bedrock)', type: 'mc-bedrock', category: 'game', dockerImage: 'itzg/minecraft-bedrock-server:latest', defaultPort: 19132, defaultEnv: ["EULA=TRUE"], icon: '📱', banner: '/banners/mc.jpg', description: 'Cross-platform Bedrock edition.', variables: [
+        { name: 'Server Name', description: 'Public name', envVar: 'SERVER_NAME', defaultValue: 'HostMachine Bedrock', type: 'string' },
+        { name: 'Accept EULA', description: 'Must be TRUE to run', envVar: 'EULA', defaultValue: 'TRUE', type: 'boolean' }
+    ], requiredOs: 'linux' },
+    { id: 'minecraft-forge', name: 'Minecraft (Forge)', type: 'mc-forge', category: 'game', dockerImage: 'itzg/minecraft-server:latest', defaultPort: 25565, defaultEnv: ["TYPE=FORGE", "MEMORY=4G", "EULA=TRUE"], icon: '⚒️', banner: '/banners/mc.jpg', description: 'Modded Minecraft with Forge.', variables: [
+        { name: 'Forge Version', description: 'Leave empty for latest', envVar: 'FORGE_VERSION', defaultValue: '', type: 'string' },
+        { name: 'Accept EULA', description: 'Must be TRUE to run', envVar: 'EULA', defaultValue: 'TRUE', type: 'boolean' }
+    ], requiredOs: 'linux' },
+    { id: 'minecraft-fabric', name: 'Minecraft (Fabric)', type: 'mc-fabric', category: 'game', dockerImage: 'itzg/minecraft-server:latest', defaultPort: 25565, defaultEnv: ["TYPE=FABRIC", "MEMORY=4G", "EULA=TRUE"], icon: '🧵', banner: '/banners/mc.jpg', description: 'Modded Minecraft with Fabric.', variables: [
         { name: 'Accept EULA', description: 'Must be TRUE to run', envVar: 'EULA', defaultValue: 'TRUE', type: 'boolean' }
     ], requiredOs: 'linux' },
     { id: 'fctr', name: 'Factorio', type: 'fctr', category: 'game', dockerImage: 'gameservermanagers/gameserver:fctr', defaultPort: 34197, defaultEnv: [], icon: '⚙️', banner: '/banners/fctr.jpg', description: 'Factory building.', variables: [], requiredOs: 'linux' },
