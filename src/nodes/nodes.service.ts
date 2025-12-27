@@ -62,6 +62,12 @@ export class NodesService {
       return !!(node && node.apiKey === apiKey);
   }
 
+  getEnrollmentCommand() {
+    const apiUrl = process.env.PUBLIC_API_URL || 'https://api.hostmachine.net';
+    const secret = process.env.ENROLLMENT_SECRET || 'valid-token';
+    return `curl -sSL ${apiUrl}/install.sh | sudo bash -s -- --token ${secret} --url ${apiUrl}`;
+  }
+
   async updateUsage(nodeId: string, usage: any) {
     // HOT DATA: Write to Redis with TTL
     const redisKey = `node:${nodeId}:status`;
