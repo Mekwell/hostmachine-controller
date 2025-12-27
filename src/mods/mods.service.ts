@@ -29,18 +29,28 @@ export class ModsService {
     const project = projectRes.data;
 
     // 2. Find best version for this server
-    // We try to guess game version from env or default to latest
-    const loader = server.gameType.includes('fabric') ? 'fabric' : 'forge';
+    let loader = 'forge';
+    if (server.gameType.includes('fabric')) loader = 'fabric';
+    else if (server.gameType.includes('forge')) loader = 'forge';
+    else if (server.gameType.includes('java')) loader = 'paper';
     
     const versionsRes = await axios.get(`https://api.modrinth.com/v2/project/${modId}/version`, {
         params: {
             loaders: JSON.stringify([loader]),
-            // Ideally we'd filter by game version too e.g. ["1.20.1"]
         }
     });
 
-    const version = versionsRes.data[0]; // Get latest compatible
-    if (!version) throw new Error('No compatible versions found for this loader.');
+    let version = versionsRes.data[0]; 
+    
+    // Fallback: If no 'paper' version, try 'spigot' or 'bukkit' for minecraft-java
+    if (!version && loader === 'paper') {
+        const fallbackRes = await axios.get(`https://api.modrinth.com/v2/project/${modId}/version`, {
+            params: { loaders: JSON.stringify(['spigot', 'bukkit']) }
+        });
+        version = fallbackRes.data[0];
+    }
+
+    if (!version) throw new Error(`No compatible versions found for loader: ${loader}`);
 
     const primaryFile = version.files.find((f: any) => f.primary) || version.files[0];
     const downloadUrl = primaryFile.url;
