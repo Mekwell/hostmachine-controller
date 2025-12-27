@@ -23,6 +23,9 @@ export class Plan {
   @Column({ type: 'varchar', default: 'fixed' })
   type!: 'fixed' | 'flexi';
 
+  @Column({ type: 'varchar', default: 'budget' })
+  tier!: 'budget' | 'premium';
+
   @Column({ nullable: true })
   gameId?: string;
 

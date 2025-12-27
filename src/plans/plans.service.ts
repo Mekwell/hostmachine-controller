@@ -22,6 +22,7 @@ export class PlansService implements OnModuleInit {
             ramMb: 2048,
             cpuCores: 1,
             type: 'fixed' as const,
+            tier: 'budget' as const,
             gameId: 'minecraft-java',
             isActive: true
         },
@@ -32,6 +33,7 @@ export class PlansService implements OnModuleInit {
             ramMb: 6144,
             cpuCores: 2,
             type: 'fixed' as const,
+            tier: 'premium' as const,
             gameId: 'minecraft-java',
             isActive: true
         },
@@ -42,6 +44,7 @@ export class PlansService implements OnModuleInit {
             ramMb: 12288,
             cpuCores: 4,
             type: 'fixed' as const,
+            tier: 'budget' as const,
             gameId: 'rust',
             isActive: true
         },
@@ -52,6 +55,7 @@ export class PlansService implements OnModuleInit {
             ramMb: 4096,
             cpuCores: 4,
             type: 'fixed' as const,
+            tier: 'premium' as const,
             gameId: 'cs2',
             isActive: true
         },
@@ -62,6 +66,7 @@ export class PlansService implements OnModuleInit {
             ramMb: 4096,
             cpuCores: 2,
             type: 'fixed' as const,
+            tier: 'budget' as const,
             isActive: true
         },
         {
@@ -71,6 +76,7 @@ export class PlansService implements OnModuleInit {
             ramMb: 8192,
             cpuCores: 4,
             type: 'flexi' as const,
+            tier: 'budget' as const,
             isActive: true
         },
         {
@@ -80,6 +86,7 @@ export class PlansService implements OnModuleInit {
             ramMb: 16384,
             cpuCores: 8,
             type: 'flexi' as const,
+            tier: 'premium' as const,
             isActive: true
         },
         {
@@ -89,6 +96,7 @@ export class PlansService implements OnModuleInit {
             ramMb: 32768,
             cpuCores: 12,
             type: 'flexi' as const,
+            tier: 'premium' as const,
             isActive: true
         },
         {
@@ -98,6 +106,7 @@ export class PlansService implements OnModuleInit {
             ramMb: 65536,
             cpuCores: 16,
             type: 'flexi' as const,
+            tier: 'premium' as const,
             isActive: true
         },
         {
@@ -107,6 +116,7 @@ export class PlansService implements OnModuleInit {
             ramMb: 16384,
             cpuCores: 4,
             type: 'fixed' as const,
+            tier: 'budget' as const,
             gameId: 'asa',
             isActive: true
         },
@@ -117,6 +127,7 @@ export class PlansService implements OnModuleInit {
             ramMb: 32768,
             cpuCores: 8,
             type: 'fixed' as const,
+            tier: 'premium' as const,
             gameId: 'asa',
             isActive: true
         },
@@ -127,6 +138,7 @@ export class PlansService implements OnModuleInit {
             ramMb: 65536,
             cpuCores: 12,
             type: 'fixed' as const,
+            tier: 'premium' as const,
             gameId: 'asa',
             isActive: true
         },
@@ -137,6 +149,7 @@ export class PlansService implements OnModuleInit {
             ramMb: 16384,
             cpuCores: 4,
             type: 'fixed' as const,
+            tier: 'premium' as const,
             gameId: 'asa-win',
             isActive: true
         }
@@ -147,6 +160,9 @@ export class PlansService implements OnModuleInit {
         if (!exists) {
             console.log(`Adding missing plan: ${planData.name}`);
             await this.plansRepository.save(this.plansRepository.create(planData));
+        } else if (!exists.tier) {
+            // Update existing if tier is missing
+            await this.plansRepository.update(exists.id, { tier: planData.tier });
         }
     }
   }

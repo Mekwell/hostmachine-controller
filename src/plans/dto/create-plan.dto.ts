@@ -19,4 +19,12 @@ export class CreatePlanDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsString()
+  @IsOptional()
+  type?: 'fixed' | 'flexi';
+
+  @IsString()
+  @IsOptional()
+  tier?: 'budget' | 'premium';
 }
