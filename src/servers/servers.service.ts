@@ -144,8 +144,10 @@ export class ServersService {
       // 2. Create Placeholder Entity
       const nameEnv = dto.env?.find(e => e.startsWith('SERVER_NAME='));
       const serverName = nameEnv ? nameEnv.split('=')[1] : `Server-${generateId(4)}`;
+      const newServerId = uuidv4();
 
       const server = this.serverRepository.create({
+          id: newServerId,
           userId: dto.userId,
           nodeId: targetNode.id,
           gameType: dto.gameType,
