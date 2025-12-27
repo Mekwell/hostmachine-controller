@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { io } from 'socket.io-client';
 
 const API_URL = 'http://localhost:3000';
 const USER_EMAIL = `sim_${Date.now()}@test.com`;
