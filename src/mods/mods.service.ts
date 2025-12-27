@@ -50,7 +50,7 @@ export class ModsService {
     // Path is relative to server data dir. Minecraft mods go in /mods
     const installPath = `/mods/${filename}`;
     
-    await this.commandsService.execute(serverId, `curl -L -o ${installPath} ${downloadUrl}`);
+    await this.commandsService.executeCommand(serverId, `curl -L -o ${installPath} ${downloadUrl}`);
 
     // 4. Update managed mods in DB
     const currentMods = server.managedMods || [];
@@ -74,11 +74,17 @@ export class ModsService {
 
       const mod = server.managedMods.find(m => m.id === modId);
       if (mod) {
-          await this.commandsService.execute(serverId, `rm /mods/${mod.filename}`);
+          await this.commandsService.executeCommand(serverId, `rm /mods/${mod.filename}`);
           const remaining = server.managedMods.filter(m => m.id !== modId);
           await this.serverRepository.update(serverId, { managedMods: remaining });
       }
       return { status: 'uninstalled' };
+  }
+
+  resolveDependencies(mods: any[]) {
+      // TODO: Implement actual dependency resolution via Modrinth API
+      // For now, just return the requested mods as-is
+      return mods;
   }
 
   async getInstalledMods(serverId: string) {
