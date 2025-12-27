@@ -1,128 +1,88 @@
-import { Injectable } from '@nestjs/common';
-
-export interface ModTemplate {
-  id: string;
-  name: string;
-  description: string;
-  gameType: string; // e.g., 'rust', 'minecraft', 'gmod'
-  category: 'core' | 'plugin' | 'map' | 'config';
-  version: string;
-  
-  // Installation Logic
-  downloadUrl: string;
-  installPath: string; // Relative to server root, e.g., '/Oxide/plugins'
-  fileName?: string; // If undefined, infer from URL
-  
-  // Dependencies
-  requires?: string[]; // IDs of other mods (e.g., 'oxide-core' required for 'gather-manager')
-}
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Server } from '../servers/entities/server.entity';
+import axios from 'axios';
+import { CommandsService } from '../commands/commands.service';
 
 @Injectable()
 export class ModsService {
-  private readonly mods: ModTemplate[] = [
-    // --- RUST ---
-    {
-      id: 'rust-oxide',
-      name: 'Oxide (uMod)',
-      description: 'The core modding framework for Rust. Required for all plugins.',
-      gameType: 'rust',
-      category: 'core',
-      version: 'latest',
-      downloadUrl: 'https://umod.org/games/rust/download',
-      installPath: '/', // Extract to root
-    },
-    {
-      id: 'rust-gather-manager',
-      name: 'Gather Manager',
-      description: 'Control resource gathering rates (10x, 100x servers).',
-      gameType: 'rust',
-      category: 'plugin',
-      version: 'latest',
-      downloadUrl: 'https://umod.org/plugins/GatherManager.cs',
-      installPath: '/oxide/plugins',
-      requires: ['rust-oxide']
-    },
-    {
-      id: 'rust-stack-size',
-      name: 'Stack Size Controller',
-      description: 'Allow massive item stacks for loot heavy servers.',
-      gameType: 'rust',
-      category: 'plugin',
-      version: 'latest',
-      downloadUrl: 'https://umod.org/plugins/StackSizeController.cs',
-      installPath: '/oxide/plugins',
-      requires: ['rust-oxide']
-    },
-    {
-      id: 'rust-no-decay',
-      name: 'No Decay',
-      description: 'Disables building upkeep and decay.',
-      gameType: 'rust',
-      category: 'plugin',
-      version: 'latest',
-      downloadUrl: 'https://umod.org/plugins/NoDecay.cs',
-      installPath: '/oxide/plugins',
-      requires: ['rust-oxide']
-    },
+  private readonly logger = new Logger(ModsService.name);
 
-    // --- MINECRAFT (Paper/Spigot) ---
-    {
-      id: 'mc-essentialsx',
-      name: 'EssentialsX',
-      description: 'Essential commands (home, warp, spawn) for servers.',
-      gameType: 'mc',
-      category: 'plugin',
-      version: 'latest',
-      downloadUrl: 'https://github.com/EssentialsX/Essentials/releases/latest/download/EssentialsX-2.20.1.jar',
-      installPath: '/plugins'
-    },
-    {
-      id: 'mc-worldedit',
-      name: 'WorldEdit',
-      description: 'In-game map editor and building tool.',
-      gameType: 'mc',
-      category: 'plugin',
-      version: 'latest',
-      downloadUrl: 'https://dev.bukkit.org/projects/worldedit/files/latest',
-      installPath: '/plugins'
-    }
-  ];
+  constructor(
+    @InjectRepository(Server)
+    private serverRepository: Repository<Server>,
+    private commandsService: CommandsService,
+  ) {}
 
-  findAll(gameType?: string) {
-    if (gameType) {
-      return this.mods.filter(m => m.gameType === gameType);
-    }
-    return this.mods;
-  }
+  async installMod(serverId: string, modId: string) {
+    const server = await this.serverRepository.findOne({ 
+        where: { id: serverId },
+        relations: ['node'] 
+    });
+    if (!server) throw new Error('Server not found');
 
-  findOne(id: string) {
-    return this.mods.find(m => m.id === id);
-  }
+    this.logger.log(`Installing mod ${modId} on server ${serverId}`);
 
-  /**
-   * Returns the full list of mods required to install the requested mod IDs.
-   * Resolves dependencies recursively.
-   */
-  resolveDependencies(modIds: string[]): ModTemplate[] {
-    const resolved = new Set<string>();
-    const queue = [...modIds];
-    const result: ModTemplate[] = [];
+    // 1. Fetch project info from Modrinth
+    const projectRes = await axios.get(`https://api.modrinth.com/v2/project/${modId}`);
+    const project = projectRes.data;
 
-    while (queue.length > 0) {
-      const id = queue.shift();
-      if (!id || resolved.has(id)) continue;
-
-      const mod = this.findOne(id);
-      if (mod) {
-        resolved.add(id);
-        result.push(mod);
-        if (mod.requires) {
-          queue.push(...mod.requires);
+    // 2. Find best version for this server
+    // We try to guess game version from env or default to latest
+    const loader = server.gameType.includes('fabric') ? 'fabric' : 'forge';
+    
+    const versionsRes = await axios.get(`https://api.modrinth.com/v2/project/${modId}/version`, {
+        params: {
+            loaders: JSON.stringify([loader]),
+            // Ideally we'd filter by game version too e.g. ["1.20.1"]
         }
-      }
+    });
+
+    const version = versionsRes.data[0]; // Get latest compatible
+    if (!version) throw new Error('No compatible versions found for this loader.');
+
+    const primaryFile = version.files.find((f: any) => f.primary) || version.files[0];
+    const downloadUrl = primaryFile.url;
+    const filename = primaryFile.filename;
+
+    // 3. Command Agent to download
+    // Path is relative to server data dir. Minecraft mods go in /mods
+    const installPath = `/mods/${filename}`;
+    
+    await this.commandsService.execute(serverId, `curl -L -o ${installPath} ${downloadUrl}`);
+
+    // 4. Update managed mods in DB
+    const currentMods = server.managedMods || [];
+    if (!currentMods.find(m => m.id === modId)) {
+        currentMods.push({
+            id: modId,
+            name: project.title,
+            version: version.version_number,
+            filename: filename,
+            loader: loader
+        });
+        await this.serverRepository.update(serverId, { managedMods: currentMods });
     }
 
-    // Sort: Core mods first
-    return result.sort((a, b) => (a.category === 'core' ? -1 : 1));
+    return { status: 'installing', filename };
+  }
+
+  async uninstallMod(serverId: string, modId: string) {
+      const server = await this.serverRepository.findOneBy({ id: serverId });
+      if (!server || !server.managedMods) return;
+
+      const mod = server.managedMods.find(m => m.id === modId);
+      if (mod) {
+          await this.commandsService.execute(serverId, `rm /mods/${mod.filename}`);
+          const remaining = server.managedMods.filter(m => m.id !== modId);
+          await this.serverRepository.update(serverId, { managedMods: remaining });
+      }
+      return { status: 'uninstalled' };
+  }
+
+  async getInstalledMods(serverId: string) {
+      const server = await this.serverRepository.findOneBy({ id: serverId });
+      return server?.managedMods || [];
   }
 }

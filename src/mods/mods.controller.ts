@@ -1,19 +1,22 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Param, Delete } from '@nestjs/common';
 import { ModsService } from './mods.service';
-import { InternalGuard } from '../auth/internal.guard';
 
 @Controller('mods')
-@UseGuards(InternalGuard)
 export class ModsController {
   constructor(private readonly modsService: ModsService) {}
 
-  @Get()
-  findAll(@Query('game') gameType?: string) {
-    return this.modsService.findAll(gameType);
+  @Get(':serverId')
+  async getInstalled(@Param('serverId') serverId: string) {
+    return this.modsService.getInstalledMods(serverId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.modsService.findOne(id);
+  @Post(':serverId/install')
+  async install(@Param('serverId') serverId: string, @Body('modId') modId: string) {
+    return this.modsService.installMod(serverId, modId);
+  }
+
+  @Delete(':serverId/:modId')
+  async uninstall(@Param('serverId') serverId: string, @Param('modId') modId: string) {
+    return this.modsService.uninstallMod(serverId, modId);
   }
 }

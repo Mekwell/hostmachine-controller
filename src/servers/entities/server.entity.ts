@@ -66,6 +66,9 @@ export class Server {
   @Column({ type: 'simple-json', nullable: true })
   players: { name: string; ping: number; joinedAt: string }[];
 
+  @Column({ type: 'simple-json', nullable: true })
+  managedMods: { id: string; name: string; version: string; filename: string; loader: string }[];
+
   @CreateDateColumn()
   createdAt: Date;
 
