@@ -38,13 +38,14 @@ import { RedisModule } from './redis/redis.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
-      type: 'sqlite',
-      database: 'hostmachine.sqlite',
+      type: 'postgres',
+      host: process.env.DB_HOST || '127.0.0.1',
+      port: 5432,
+      username: process.env.DB_USER || 'hm_admin',
+      password: process.env.DB_PASSWORD || 'hm_secure_pass_2025',
+      database: process.env.DB_NAME || 'hostmachine',
       entities: [Node, Plan, Subscription, Server, Metric, Backup, Ticket, User, EmailTemplate],
-      synchronize: true, // WARNING: Only for Development! Auto-updates DB schema.
-      extra: {
-        busyTimeout: 5000,
-      }
+      synchronize: true, // WARNING: Only for Development!
     }),
     TypeOrmModule.forFeature([Node, Plan]),
     RedisModule,

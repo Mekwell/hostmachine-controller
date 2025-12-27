@@ -5,6 +5,7 @@ import { RegisterNodeDto } from './dto/register-node.dto';
 import { Node } from './entities/node.entity';
 import { v4 as uuidv4 } from 'uuid';
 import { ServersService } from '../servers/servers.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class NodesService {
@@ -15,28 +16,25 @@ export class NodesService {
     private nodesRepository: Repository<Node>,
     @Inject(forwardRef(() => ServersService))
     private serversService: ServersService,
+    private redisService: RedisService,
   ) {}
 
   async register(registerDto: RegisterNodeDto) {
     this.logger.log(`Registering Node: ${registerDto.specs.hostname}`);
 
-    // SECURITY: Check against a secret configured in the environment
     const validSecret = process.env.ENROLLMENT_SECRET; 
     if (!validSecret || registerDto.enrollmentToken !== validSecret) {
        this.logger.warn(`Failed registration attempt with token: ${registerDto.enrollmentToken}`);
        throw new UnauthorizedException('Invalid Enrollment Token');
     }
 
-    // Check if node already exists (by hostname) to avoid duplicates?
-    // For now, we allow re-registration which might generate a new ID/Key
-    
     const newNode = this.nodesRepository.create({
       hostname: registerDto.specs.hostname,
       specs: registerDto.specs,
       vpnIp: registerDto.vpnIp,
-      location: registerDto.location || 'Sydney', // Default to Sydney
+      location: registerDto.location || 'Sydney',
       status: 'ONLINE',
-      apiKey: uuidv4(), // Generate High-Entropy Key
+      apiKey: uuidv4(),
     });
 
     await this.nodesRepository.save(newNode);
@@ -58,65 +56,59 @@ export class NodesService {
     return this.nodesRepository.findOneBy({ id });
   }
 
-  private lastSeenCache: Record<string, number> = {};
-
   async validateApiKey(nodeId: string, apiKey: string): Promise<boolean> {
+      // Still need cold data check for the API key
       const node = await this.nodesRepository.findOneBy({ id: nodeId });
-      if (node && node.apiKey === apiKey) {
-          const now = Date.now();
-          const lastUpdate = this.lastSeenCache[nodeId] || 0;
-
-          // Only write to DB if last update was > 60s ago to prevent event loop blocking
-          if (now - lastUpdate > 60000) {
-              node.lastSeen = new Date();
-              node.status = 'ONLINE';
-              await this.nodesRepository.save(node);
-              this.lastSeenCache[nodeId] = now;
-          }
-          return true;
-      }
-      return false;
-  }
-
-  getEnrollmentCommand() {
-    const apiUrl = process.env.PUBLIC_API_URL || 'https://api.hostmachine.net';
-    const secret = process.env.ENROLLMENT_SECRET || 'valid-token';
-    return `curl -sSL ${apiUrl}/install.sh | sudo bash -s -- --token ${secret} --url ${apiUrl}`;
-  }
-
-  async remove(id: string) {
-      this.logger.log(`Removing Node: ${id}`);
-      await this.nodesRepository.delete(id);
-      return { status: 'deleted', id };
+      return !!(node && node.apiKey === apiKey);
   }
 
   async updateUsage(nodeId: string, usage: any) {
+    // HOT DATA: Write to Redis with TTL
+    const redisKey = `node:${nodeId}:status`;
+    await this.redisService.client.set(redisKey, JSON.stringify({
+        ...usage,
+        lastSeen: new Date().toISOString()
+    }), 'EX', 60); // 60s TTL
+
+    // Update Presence in Redis
+    await this.redisService.client.set(`node:${nodeId}:presence`, 'online', 'EX', 45);
+
+    // COLD DATA: Background update to Postgres (Throttled)
+    // Only update DB if last seen is older than 2 minutes to keep Postgres clean
     const node = await this.nodesRepository.findOneBy({ id: nodeId });
     if (node) {
-      node.usage = usage;
-      if (usage.publicIp) {
-          node.publicIp = usage.publicIp;
-      }
-      if (usage.vpnIp) {
-          this.logger.log(`Setting VPN IP: ${usage.vpnIp}`);
-          node.vpnIp = usage.vpnIp;
-      }
-      
-      node.lastSeen = new Date();
-      node.status = 'ONLINE';
-      
-      // Update Container Status & Metadata
-      if (usage.containerStates) {
-          // Pass the full usage object to handle stats mapping
-          await this.serversService.updateStatusFromHeartbeat(usage);
-      } else if (usage.containers && Array.isArray(usage.containers)) {
-          // Fallback for legacy heartbeats
-          const fallbackMap: Record<string, string> = {};
-          usage.containers.forEach((id: string) => fallbackMap[id] = 'RUNNING');
-          await this.serversService.updateStatusFromHeartbeat({ containerStates: fallbackMap });
-      }
-
-      return this.nodesRepository.save(node);
+        const now = new Date();
+        const lastSeen = node.lastSeen ? new Date(node.lastSeen).getTime() : 0;
+        
+        if (now.getTime() - lastSeen > 120000) {
+            await this.nodesRepository.update(nodeId, { 
+                lastSeen: now, 
+                status: 'ONLINE',
+                publicIp: usage.publicIp || node.publicIp,
+                vpnIp: usage.vpnIp || node.vpnIp
+            });
+        }
     }
+
+    // Process container statuses
+    if (usage.containerStates) {
+        await this.serversService.updateStatusFromHeartbeat(usage);
+    }
+
+    return { status: 'acknowledged' };
+  }
+
+  async getNodeStatus(nodeId: string) {
+      const hotData = await this.redisService.client.get(`node:${nodeId}:status`);
+      if (hotData) return JSON.parse(hotData);
+      
+      // Fallback to cold data
+      return this.findOne(nodeId);
+  }
+
+  async remove(id: string) {
+      await this.nodesRepository.delete(id);
+      await this.redisService.client.del(`node:${id}:status`);
+      return { status: 'deleted', id };
   }
 }
