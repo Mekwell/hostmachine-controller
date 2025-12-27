@@ -33,7 +33,7 @@ export class ConfigParserService {
   }
 
   detectType(filename: string): 'properties' | 'ini' | 'json' | 'unknown' {
-      if (filename.endsWith('.properties')) return 'properties';
+      if (filename.endsWith('.properties') || filename.endsWith('.cfg')) return 'properties';
       if (filename.endsWith('.ini')) return 'ini';
       if (filename.endsWith('.json')) return 'json';
       return 'unknown';
