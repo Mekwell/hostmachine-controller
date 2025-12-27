@@ -14,7 +14,7 @@ export class PlansService implements OnModuleInit {
   async onModuleInit() {
     const existingPlans = await this.plansRepository.find();
     
-    const defaultPlans = [
+    const allDefaultPlans = [
         {
             name: 'Basic Minecraft Block',
             description: 'Entry-level resource for small friend groups',
@@ -25,10 +25,81 @@ export class PlansService implements OnModuleInit {
             gameId: 'minecraft-java',
             isActive: true
         },
-        // ... (existing plans omitted for brevity in replacement, but I will include them in the full string)
-    ];
-
-    const arkPlans = [
+        {
+            name: 'Minecraft Specialized',
+            description: 'Optimized for high-tickrate Minecraft worlds',
+            price: 12,
+            ramMb: 6144,
+            cpuCores: 2,
+            type: 'fixed' as const,
+            gameId: 'minecraft-java',
+            isActive: true
+        },
+        {
+            name: 'Rust Survivor',
+            description: 'High-memory block for large Rust maps',
+            price: 24,
+            ramMb: 12288,
+            cpuCores: 4,
+            type: 'fixed' as const,
+            gameId: 'rust',
+            isActive: true
+        },
+        {
+            name: 'CS2 Tactical',
+            description: '128-tick optimized tactical module',
+            price: 15,
+            ramMb: 4096,
+            cpuCores: 4,
+            type: 'fixed' as const,
+            gameId: 'cs2',
+            isActive: true
+        },
+        {
+            name: 'Universal Module',
+            description: 'Deploy any curated game server from our grid.',
+            price: 10,
+            ramMb: 4096,
+            cpuCores: 2,
+            type: 'fixed' as const,
+            isActive: true
+        },
+        {
+            name: 'Lite Resource Pool',
+            description: '8GB Resource block for dynamic module management.',
+            price: 25,
+            ramMb: 8192,
+            cpuCores: 4,
+            type: 'flexi' as const,
+            isActive: true
+        },
+        {
+            name: 'Pro Resource Pool',
+            description: '16GB Resource block for multi-instance fleets.',
+            price: 45,
+            ramMb: 16384,
+            cpuCores: 8,
+            type: 'flexi' as const,
+            isActive: true
+        },
+        {
+            name: 'Enterprise Pool',
+            description: '32GB Massive resource block for large networks.',
+            price: 80,
+            ramMb: 32768,
+            cpuCores: 12,
+            type: 'flexi' as const,
+            isActive: true
+        },
+        {
+            name: 'Titan Pool',
+            description: '64GB Ultra-tier block for massive game clusters.',
+            price: 150,
+            ramMb: 65536,
+            cpuCores: 16,
+            type: 'flexi' as const,
+            isActive: true
+        },
         {
             name: 'ARK: Ascended Basic',
             description: 'Basic requirement for ARK Survival Ascended',
@@ -58,22 +129,25 @@ export class PlansService implements OnModuleInit {
             type: 'fixed' as const,
             gameId: 'asa',
             isActive: true
+        },
+        {
+            name: 'ARK: Ascended (Win-Native)',
+            description: 'Optimized build for Windows Server nodes',
+            price: 40,
+            ramMb: 16384,
+            cpuCores: 4,
+            type: 'fixed' as const,
+            gameId: 'asa-win',
+            isActive: true
         }
     ];
 
-    const allPlans = [...existingPlans]; // Start with what's there
-
-    for (const planData of [...arkPlans]) {
+    for (const planData of allDefaultPlans) {
         const exists = existingPlans.find(p => p.name === planData.name);
         if (!exists) {
             console.log(`Adding missing plan: ${planData.name}`);
             await this.plansRepository.save(this.plansRepository.create(planData));
         }
-    }
-
-    if (existingPlans.length === 0) {
-        console.log('Seeding default plans...');
-        // (Logic to seed the rest if empty)
     }
   }
 
