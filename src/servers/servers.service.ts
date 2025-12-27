@@ -112,72 +112,106 @@ export class ServersService {
   }
 
   async deployServer(dto: CreateServerDto) {
-      this.logger.log(`Queueing deployment for ${dto.gameType} (User: ${dto.userId})`);
+      this.logger.log(`Requesting deployment for ${dto.gameType} (User: ${dto.userId})`);
+
+      // 1. Validation & Node Selection (Synchronous)
+      const template: any = this.gamesService.findOne(dto.gameType);
+      if (!template && !dto.customImage) throw new BadRequestException(`Unknown game type: ${dto.gameType}`);
+
+      const nodes = await this.nodesService.findAll();
+      let onlineNodes = nodes.filter(n => n.status === 'ONLINE');
+
+      // Filter by OS Requirement
+      if (template?.requiredOs === 'windows') {
+          onlineNodes = onlineNodes.filter(n => n.specs?.osPlatform?.toLowerCase().includes('windows'));
+      } else {
+          onlineNodes = onlineNodes.filter(n => !n.specs?.osPlatform?.toLowerCase().includes('windows'));
+      }
+
+      if (dto.location) {
+          const regionalNodes = onlineNodes.filter(n => n.location === dto.location);
+          if (regionalNodes.length > 0) onlineNodes = regionalNodes;
+      }
+      if (onlineNodes.length === 0) throw new ServiceUnavailableException(`No online ${template?.requiredOs || 'linux'} nodes available.`);
+
+      const targetNode = onlineNodes[0]; // Simple round-robin or load balancing could go here
+
+      // 2. Create Placeholder Entity
+      const nameEnv = dto.env?.find(e => e.startsWith('SERVER_NAME='));
+      const serverName = nameEnv ? nameEnv.split('=')[1] : `Server-${nanoid(4)}`;
+
+      const server = this.serverRepository.create({
+          userId: dto.userId,
+          nodeId: targetNode.id,
+          gameType: dto.gameType,
+          name: serverName,
+          dockerImage: template?.dockerImage || dto.customImage,
+          port: 0, // Assigned in worker
+          memoryLimitMb: dto.memoryLimitMb,
+          status: 'PROVISIONING',
+          progress: 5,
+          env: dto.env || [],
+          autoUpdate: dto.autoUpdate ?? true,
+          restartSchedule: dto.restartSchedule,
+          sftpUsername: `user_${nanoid(8)}`, // Pre-generate
+          sftpPassword: nanoid(16)
+      });
       
-      // Add to BullMQ Queue
-      // The frontend will receive 'provisioning' status immediately
-      // The background worker will pick this up and call deployServerTask
-      await this.deployQueue.add('deploy-server', dto, {
+      const savedServer = await this.serverRepository.save(server);
+
+      // 3. Queue Provisioning
+      await this.deployQueue.add('deploy-server', { 
+          serverId: savedServer.id,
+          template,
+          nodeId: targetNode.id,
+          ...dto 
+      }, {
           removeOnComplete: true,
           removeOnFail: false
       });
 
+      this.logger.log(`Server ${savedServer.id} created and queued.`);
+
       return {
           status: 'provisioning',
-          message: 'Deployment queued successfully.'
+          serverId: savedServer.id,
+          message: 'Server created. Provisioning started.'
       };
   }
 
   /**
    * Actual logic executed by the background worker
    */
-  async deployServerTask(dto: CreateServerDto, job?: Job) {
-    this.logger.log(`[Worker] Starting deployment task for ${dto.gameType}`);
+  async deployServerTask(jobData: any, job?: Job) {
+    const { serverId, template, nodeId } = jobData;
+    this.logger.log(`[Worker] Starting provisioning for Server ${serverId}`);
+    
     const updateProgress = async (val: number) => {
         if (job) await job.updateProgress(val);
+        await this.serverRepository.update({ id: serverId }, { progress: val });
     };
 
     try {
-        await updateProgress(5);
-        let template: any = this.gamesService.findOne(dto.gameType);
-        if (!template && !dto.customImage) throw new BadRequestException(`Unknown game type: ${dto.gameType}`);
-
-        if (dto.customImage) {
-            template = { dockerImage: dto.customImage, defaultPort: 25565, defaultEnv: [] };
-        }
-
         await updateProgress(10);
-        const nodes = await this.nodesService.findAll();
-        let onlineNodes = nodes.filter(n => n.status === 'ONLINE');
-
-        // Filter by OS Requirement
-        if (template.requiredOs === 'windows') {
-            onlineNodes = onlineNodes.filter(n => n.specs?.osPlatform?.toLowerCase().includes('windows'));
-        } else {
-            // Default to linux, but specifically exclude windows if it's a linux game
-            onlineNodes = onlineNodes.filter(n => !n.specs?.osPlatform?.toLowerCase().includes('windows'));
-        }
-
-        if (dto.location) {
-            const regionalNodes = onlineNodes.filter(n => n.location === dto.location);
-            if (regionalNodes.length > 0) onlineNodes = regionalNodes;
-        }
-        if (onlineNodes.length === 0) throw new ServiceUnavailableException(`No online ${template.requiredOs} nodes available.`);
-
-        const targetNode = onlineNodes[0];
-        const port = 20000 + Math.floor(Math.random() * 1000);
         
-        const nameEnv = dto.env?.find(e => e.startsWith('SERVER_NAME='));
-        const serverName = nameEnv ? nameEnv.split('=')[1] : `Server-${nanoid(4)}`;
-        
-        const sftpUsername = `user_${nanoid(8)}`;
-        const sftpPassword = nanoid(16);
+        // Fetch fresh server state
+        const server = await this.serverRepository.findOneBy({ id: serverId });
+        if (!server) throw new Error('Server entity missing in worker');
+
+        // Verify Node
+        const targetNode = await this.nodesService.findOne(nodeId);
+        if (!targetNode) throw new Error('Target node disappeared');
 
         await updateProgress(20);
+        
+        // Allocate Port
+        const port = 20000 + Math.floor(Math.random() * 1000); // TODO: Real port manager
+        
+        // DNS
         const dnsIp = targetNode.externalIp || targetNode.publicIp;
         let subdomain = '';
         if (dnsIp) {
-            const cleanName = this.dnsService.sanitize(serverName);
+            const cleanName = this.dnsService.sanitize(server.name);
             const sub = cleanName || `server-${nanoid(4)}`;
             const fullDomain = await this.dnsService.createRecord(sub, dnsIp, port);
             if (fullDomain) subdomain = fullDomain;
@@ -185,42 +219,28 @@ export class ServersService {
 
         await updateProgress(40);
         let resolvedMods: any[] = [];
-        if (dto.mods && dto.mods.length > 0) resolvedMods = this.modsService.resolveDependencies(dto.mods);
+        if (jobData.mods && jobData.mods.length > 0) resolvedMods = this.modsService.resolveDependencies(jobData.mods);
 
-        const server = this.serverRepository.create({
-            userId: dto.userId,
-            nodeId: targetNode.id,
-            gameType: dto.gameType,
-            name: serverName,
-            dockerImage: template.dockerImage,
-            port: port,
-            memoryLimitMb: dto.memoryLimitMb,
-            status: 'PROVISIONING',
-            progress: 50,
-            env: dto.env || [],
-            autoUpdate: dto.autoUpdate ?? true,
-            restartSchedule: dto.restartSchedule,
-            sftpUsername,
-            sftpPassword,
-            subdomain
-        });
-        
-        const savedServer = await this.serverRepository.save(server);
+        // Update Server with Port/DNS
+        server.port = port;
+        server.subdomain = subdomain;
+        await this.serverRepository.save(server);
 
         await updateProgress(60);
+        
         await this.commandsService.create({
             targetNodeId: targetNode.id,
             type: CommandType.START_SERVER,
             payload: {
-                serverId: savedServer.id,
-                image: template.dockerImage,
+                serverId: server.id,
+                image: server.dockerImage,
                 port: port,
                 internalPort: template.defaultPort,
-                memoryLimitMb: dto.memoryLimitMb,
+                memoryLimitMb: server.memoryLimitMb,
                 env: [
-                    ...template.defaultEnv, 
-                    ...(dto.env || []),
-                    `SERVER_ID=${savedServer.id}`,
+                    ...(template.defaultEnv || []), 
+                    ...(server.env || []),
+                    `SERVER_ID=${server.id}`,
                     `IP=${targetNode.vpnIp || '0.0.0.0'}`,
                     `PORT=${port}`
                 ],
@@ -230,11 +250,12 @@ export class ServersService {
         });
 
         await updateProgress(100);
-        await this.serverRepository.update({ id: savedServer.id }, { progress: 100 });
+        await this.serverRepository.update({ id: server.id }, { status: 'STARTING', progress: 100 });
 
-        return { serverId: savedServer.id, subdomain };
+        return { serverId: server.id, subdomain };
     } catch (error: any) {
-        this.logger.error(`Deployment task failed: ${error.message}`);
+        this.logger.error(`Provisioning failed: ${error.message}`);
+        await this.serverRepository.update({ id: serverId }, { status: 'FAILED' }); // Mark as failed
         throw error;
     }
   }
