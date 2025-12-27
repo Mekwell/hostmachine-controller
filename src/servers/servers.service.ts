@@ -183,7 +183,7 @@ export class ServersService {
    * Actual logic executed by the background worker
    */
   async deployServerTask(jobData: any, job?: Job) {
-    const { serverId, template, nodeId } = jobData;
+    const { serverId, nodeId, gameType, customImage } = jobData;
     this.logger.log(`[Worker] Starting provisioning for Server ${serverId}`);
     
     const updateProgress = async (val: number) => {
@@ -192,8 +192,15 @@ export class ServersService {
     };
 
     try {
-        await updateProgress(10);
+        await updateProgress(5);
         
+        // Fetch Template again in context
+        let template: any = this.gamesService.findOne(gameType);
+        if (!template && customImage) {
+            template = { dockerImage: customImage, defaultPort: 25565, defaultEnv: [] };
+        }
+        if (!template) throw new Error(`Game template '${gameType}' not found.`);
+
         // Fetch fresh server state
         const server = await this.serverRepository.findOneBy({ id: serverId });
         if (!server) throw new Error('Server entity missing in worker');
