@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Node } from './nodes/entities/node.entity';
 import { Plan } from './plans/entities/plan.entity';
+import { User } from './users/entities/user.entity';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AppService implements OnApplicationBootstrap {
@@ -13,10 +15,27 @@ export class AppService implements OnApplicationBootstrap {
     private nodeRepo: Repository<Node>,
     @InjectRepository(Plan)
     private planRepo: Repository<Plan>,
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
   ) {}
 
   async onApplicationBootstrap() {
     this.logger.log('Checking for seed data...');
+
+    // Seed Admin User
+    const adminEmail = 'mekwell@hotmail.com';
+    const adminExists = await this.userRepo.findOne({ where: { email: adminEmail } });
+    if (!adminExists) {
+        this.logger.log(`Seeding admin user: ${adminEmail}`);
+        const hashedPassword = await bcrypt.hash('mekwell', 10);
+        const admin = this.userRepo.create({
+            email: adminEmail,
+            password: hashedPassword,
+            role: 'admin',
+            isVerified: true
+        });
+        await this.userRepo.save(admin);
+    }
 
     // 1. Seed Plans
     const planCount = await this.planRepo.count();
