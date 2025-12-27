@@ -116,6 +116,7 @@ export class ServersService {
   }
 
   async deployServer(dto: CreateServerDto) {
+    try {
       this.logger.log(`Requesting deployment for ${dto.gameType} (User: ${dto.userId})`);
 
       // 1. Validation & Node Selection (Synchronous)
@@ -150,7 +151,7 @@ export class ServersService {
           gameType: dto.gameType,
           name: serverName,
           dockerImage: template?.dockerImage || dto.customImage,
-          port: 0, // Assigned in worker
+          port: 0, 
           memoryLimitMb: dto.memoryLimitMb,
           status: 'PROVISIONING',
           progress: 5,
@@ -166,8 +167,8 @@ export class ServersService {
       // 3. Queue Provisioning
       await this.deployQueue.add('deploy-server', { 
           serverId: savedServer.id,
-          template, // This is still being passed but ignored by worker refactor? No, I refactored worker to ignore it if gameType is present
-          gameType: dto.gameType, // Explicitly pass for worker lookup
+          template, 
+          gameType: dto.gameType,
           customImage: dto.customImage,
           nodeId: targetNode.id,
           ...dto 
@@ -183,6 +184,10 @@ export class ServersService {
           serverId: savedServer.id,
           message: 'Server created. Provisioning started.'
       };
+    } catch (err: any) {
+        this.logger.error(`deployServer Failed: ${err.message}`, err.stack);
+        throw err;
+    }
   }
 
   /**
