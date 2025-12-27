@@ -149,11 +149,20 @@ export class ServersService {
         await updateProgress(10);
         const nodes = await this.nodesService.findAll();
         let onlineNodes = nodes.filter(n => n.status === 'ONLINE');
+
+        // Filter by OS Requirement
+        if (template.requiredOs === 'windows') {
+            onlineNodes = onlineNodes.filter(n => n.specs?.osPlatform?.toLowerCase().includes('windows'));
+        } else {
+            // Default to linux, but specifically exclude windows if it's a linux game
+            onlineNodes = onlineNodes.filter(n => !n.specs?.osPlatform?.toLowerCase().includes('windows'));
+        }
+
         if (dto.location) {
             const regionalNodes = onlineNodes.filter(n => n.location === dto.location);
             if (regionalNodes.length > 0) onlineNodes = regionalNodes;
         }
-        if (onlineNodes.length === 0) throw new ServiceUnavailableException('No online nodes available.');
+        if (onlineNodes.length === 0) throw new ServiceUnavailableException(`No online ${template.requiredOs} nodes available.`);
 
         const targetNode = onlineNodes[0];
         const port = 20000 + Math.floor(Math.random() * 1000);
