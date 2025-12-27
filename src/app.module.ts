@@ -42,6 +42,9 @@ import { RedisModule } from './redis/redis.module';
       database: 'hostmachine.sqlite',
       entities: [Node, Plan, Subscription, Server, Metric, Backup, Ticket, User, EmailTemplate],
       synchronize: true, // WARNING: Only for Development! Auto-updates DB schema.
+      extra: {
+        busyTimeout: 5000,
+      }
     }),
     TypeOrmModule.forFeature([Node, Plan]),
     RedisModule,
