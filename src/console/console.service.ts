@@ -23,10 +23,15 @@ export class ConsoleService implements OnModuleInit {
         else this.logger.log(`Subscribed to ${count} Redis log/stats channels.`);
     });
 
-    this.redis.on('pmessage', (pattern, channel, message) => {
+    this.redis.on('pmessage', async (pattern, channel, message) => {
         const [type, serverId] = channel.split(':');
         if (serverId) {
             if (type === 'logs') {
+                // Buffer logs in Redis (List)
+                const bufferKey = `log_buffer:${serverId}`;
+                await this.redis.lpush(bufferKey, message);
+                await this.redis.ltrim(bufferKey, 0, 499); // Keep last 500 lines
+
                 this.gateway.server.to(`server:${serverId}`).emit('log', message);
             } else if (type === 'stats') {
                 try {
@@ -36,5 +41,11 @@ export class ConsoleService implements OnModuleInit {
             }
         }
     });
+  }
+
+  async getLogs(serverId: string): Promise<string[]> {
+    const bufferKey = `log_buffer:${serverId}`;
+    const logs = await this.redis.lrange(bufferKey, 0, -1);
+    return logs.reverse(); // Reverse to get chronological order
   }
 }

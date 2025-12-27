@@ -28,9 +28,16 @@ export class ConsoleGateway implements OnGatewayConnection, OnGatewayDisconnect 
   }
 
   @SubscribeMessage('join-server')
-  handleJoinServer(client: Socket, serverId: string) {
+  async handleJoinServer(client: Socket, serverId: string) {
     this.logger.log(`Client ${client.id} joining room: server:${serverId}`);
     client.join(`server:${serverId}`);
+    
+    // Fetch and send log history
+    const history = await this.consoleService.getLogs(serverId);
+    if (history && history.length > 0) {
+        client.emit('log-history', history);
+    }
+
     return { event: 'joined', data: serverId };
   }
 

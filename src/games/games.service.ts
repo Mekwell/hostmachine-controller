@@ -41,10 +41,10 @@ export class GamesService {
     ] },
     { id: 'fctr', name: 'Factorio', type: 'fctr', category: 'game', dockerImage: 'gameservermanagers/gameserver:fctr', defaultPort: 34197, defaultEnv: [], icon: '⚙️', banner: '/banners/fctr.jpg', description: 'Factory building.', variables: [] },
     { id: 'sf', name: 'Satisfactory', type: 'sf', category: 'game', dockerImage: 'gameservermanagers/gameserver:sf', defaultPort: 7777, defaultEnv: [], icon: '🏭', banner: '/banners/sf.jpg', description: 'Factory sim.', variables: [] },
-    { id: 'vh', name: 'Valheim', type: 'vh', category: 'game', dockerImage: 'hostmachine/game-valheim:latest', defaultPort: 2456, defaultEnv: ["WORLD_NAME=Dedicated", "SERVER_NAME=HostMachine Valheim", "PUBLIC=1"], icon: '🌲', banner: '/banners/vh.jpg', description: 'Viking survival.', variables: [
+    { id: 'vh', name: 'Valheim', type: 'vh', category: 'game', dockerImage: 'hostmachine/game-valheim:latest', defaultPort: 2456, defaultEnv: ["WORLD_NAME=Dedicated", "SERVER_NAME=HostMachine Valheim", "PASSWORD=hostmachine", "PUBLIC=1"], icon: '🌲', banner: '/banners/vh.jpg', description: 'Viking survival.', variables: [
         { name: 'Server Name', description: 'Name in server browser', envVar: 'SERVER_NAME', defaultValue: 'HostMachine Valheim', type: 'string' },
         { name: 'World Name', description: 'Name of the save file', envVar: 'WORLD_NAME', defaultValue: 'Dedicated', type: 'string' },
-        { name: 'Server Password', description: 'Minimum 5 characters', envVar: 'PASSWORD', defaultValue: '', type: 'string' },
+        { name: 'Server Password', description: 'REQUIRED: Minimum 5 characters', envVar: 'PASSWORD', defaultValue: 'hostmachine', type: 'string' },
         { name: 'Public', description: 'Show in server browser (1=Yes, 0=No)', envVar: 'PUBLIC', defaultValue: '1', type: 'enum', options: ['0', '1'] }
     ] },
     { id: 'ark', name: 'ARK: Survival Evolved', type: 'ark', category: 'game', dockerImage: 'hostmachine/game-ark-evolved:latest', defaultPort: 7777, defaultEnv: ["SERVER_NAME=ARK-ASE", "MAX_PLAYERS=70", "MAP=TheIsland"], icon: '🦕', banner: '/banners/ark.jpg', description: 'Classic dino survival.', variables: [
