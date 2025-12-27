@@ -33,7 +33,7 @@ export class AppService implements OnApplicationBootstrap {
             password: hashedPassword,
             role: 'admin',
             isVerified: true
-        });
+        } as any);
         await this.userRepo.save(admin);
     }
 
