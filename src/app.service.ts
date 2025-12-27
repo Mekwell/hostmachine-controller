@@ -30,7 +30,7 @@ export class AppService implements OnApplicationBootstrap {
         const hashedPassword = await bcrypt.hash('mekwell', 10);
         const admin = this.userRepo.create({
             email: adminEmail,
-            password: hashedPassword,
+            passwordHash: hashedPassword,
             role: 'admin',
             isVerified: true
         } as any);
@@ -42,10 +42,10 @@ export class AppService implements OnApplicationBootstrap {
     if (planCount === 0) {
       this.logger.log('Seeding plans...');
       const plans: any[] = [
-        { name: 'Minecraft: Grass Tier', description: 'Basic Minecraft node', price: 5, ramMb: 2048, cpuCores: 1, type: 'fixed', gameId: 'minecraft-java' },
-        { name: 'Minecraft: Stone Tier', description: 'Advanced Minecraft node', price: 10, ramMb: 4096, cpuCores: 2, type: 'fixed', gameId: 'minecraft-java' },
-        { name: 'Flexi: Entry Block', description: 'Small resource pool', price: 15, ramMb: 8192, cpuCores: 4, type: 'flexi' },
-        { name: 'Flexi: Core Block', description: 'Medium resource pool', price: 30, ramMb: 16384, cpuCores: 8, type: 'flexi' },
+        { name: 'Minecraft: Grass Tier', description: 'Basic Minecraft node', price: 5, ramMb: 2048, cpuCores: 1, type: 'fixed', tier: 'budget', gameId: 'minecraft-java' },
+        { name: 'Minecraft: Stone Tier', description: 'Advanced Minecraft node', price: 10, ramMb: 4096, cpuCores: 2, type: 'fixed', tier: 'premium', gameId: 'minecraft-java' },
+        { name: 'Flexi: Entry Block', description: 'Small resource pool', price: 15, ramMb: 8192, cpuCores: 4, type: 'flexi', tier: 'budget' },
+        { name: 'Flexi: Core Block', description: 'Medium resource pool', price: 30, ramMb: 16384, cpuCores: 8, type: 'flexi', tier: 'premium' },
       ];
       await this.planRepo.save(this.planRepo.create(plans));
     }
