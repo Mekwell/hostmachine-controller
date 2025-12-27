@@ -12,5 +12,6 @@ import { CommandsModule } from '../commands/commands.module';
   ],
   controllers: [ModsController],
   providers: [ModsService],
+  exports: [ModsService],
 })
 export class ModsModule {}
