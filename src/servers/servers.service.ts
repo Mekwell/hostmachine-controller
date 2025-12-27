@@ -10,9 +10,13 @@ import { ModsService } from '../mods/mods.service';
 import { DnsService } from '../dns/dns.service';
 import { Server } from './entities/server.entity';
 import { Metric } from './entities/metric.entity';
-import { nanoid } from 'nanoid';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, Job } from 'bullmq';
+import { v4 as uuidv4 } from 'uuid';
+
+const generateId = (length: number = 8) => {
+    return Math.random().toString(36).substring(2, 2 + length);
+};
 
 @Injectable()
 export class ServersService {
@@ -134,11 +138,11 @@ export class ServersService {
       }
       if (onlineNodes.length === 0) throw new ServiceUnavailableException(`No online ${template?.requiredOs || 'linux'} nodes available.`);
 
-      const targetNode = onlineNodes[0]; // Simple round-robin or load balancing could go here
+      const targetNode = onlineNodes[0]; 
 
       // 2. Create Placeholder Entity
       const nameEnv = dto.env?.find(e => e.startsWith('SERVER_NAME='));
-      const serverName = nameEnv ? nameEnv.split('=')[1] : `Server-${nanoid(4)}`;
+      const serverName = nameEnv ? nameEnv.split('=')[1] : `Server-${generateId(4)}`;
 
       const server = this.serverRepository.create({
           userId: dto.userId,
@@ -153,8 +157,8 @@ export class ServersService {
           env: dto.env || [],
           autoUpdate: dto.autoUpdate ?? true,
           restartSchedule: dto.restartSchedule,
-          sftpUsername: `user_${nanoid(8)}`, // Pre-generate
-          sftpPassword: nanoid(16)
+          sftpUsername: `user_${generateId(8)}`, 
+          sftpPassword: generateId(16)
       });
       
       const savedServer = await this.serverRepository.save(server);
@@ -162,7 +166,9 @@ export class ServersService {
       // 3. Queue Provisioning
       await this.deployQueue.add('deploy-server', { 
           serverId: savedServer.id,
-          template,
+          template, // This is still being passed but ignored by worker refactor? No, I refactored worker to ignore it if gameType is present
+          gameType: dto.gameType, // Explicitly pass for worker lookup
+          customImage: dto.customImage,
           nodeId: targetNode.id,
           ...dto 
       }, {
@@ -212,14 +218,14 @@ export class ServersService {
         await updateProgress(20);
         
         // Allocate Port
-        const port = 20000 + Math.floor(Math.random() * 1000); // TODO: Real port manager
+        const port = 20000 + Math.floor(Math.random() * 1000); 
         
         // DNS
         const dnsIp = targetNode.externalIp || targetNode.publicIp;
         let subdomain = '';
         if (dnsIp) {
             const cleanName = this.dnsService.sanitize(server.name);
-            const sub = cleanName || `server-${nanoid(4)}`;
+            const sub = cleanName || `server-${generateId(4)}`;
             const fullDomain = await this.dnsService.createRecord(sub, dnsIp, port);
             if (fullDomain) subdomain = fullDomain;
         }
