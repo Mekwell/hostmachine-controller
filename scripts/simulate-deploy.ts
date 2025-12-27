@@ -12,7 +12,6 @@ async function bootstrap() {
     const result = await serversService.deployServerTask({
       userId: 'test-admin-uuid',
       gameType: 'vh', // Valheim is native linux and very stable in our setup
-      name: 'FAULTLESS-VALHEIM-TEST',
       memoryLimitMb: 4096,
       env: [
           'SERVER_NAME=FAULTLESS-VALHEIM-TEST',
