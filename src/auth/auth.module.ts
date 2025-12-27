@@ -11,9 +11,16 @@ import { NotificationModule } from '../notifications/notification.module';
     UsersModule,
     PassportModule,
     NotificationModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'secretKey',
-      signOptions: { expiresIn: '60m' },
+    JwtModule.registerAsync({
+        useFactory: () => {
+            if (!process.env.JWT_SECRET) {
+                console.warn('WARNING: Using insecure default JWT_SECRET!');
+            }
+            return {
+                secret: process.env.JWT_SECRET || 'secretKey',
+                signOptions: { expiresIn: '7d' },
+            };
+        }
     }),
   ],
   providers: [AuthService],
