@@ -1,7 +1,6 @@
 import { Injectable, OnModuleInit, Logger, Inject, forwardRef } from '@nestjs/common';
 import Redis from 'ioredis';
 import { ConsoleGateway } from './console.gateway';
-
 import { RedisService } from '../redis/redis.service';
 
 @Injectable()
@@ -16,9 +15,14 @@ export class ConsoleService implements OnModuleInit {
   ) {}
 
   onModuleInit() {
+    // Create a DEDICATED client for subscribing to avoid subscriber-mode command errors
     this.subClient = new Redis({
         host: '127.0.0.1',
         port: 6379,
+    });
+
+    this.subClient.on('error', (err) => {
+        this.logger.error('Redis Subscription Client Error:', err.message);
     });
 
     this.subClient.psubscribe('logs:*', 'stats:*', (err, count) => {
@@ -30,10 +34,14 @@ export class ConsoleService implements OnModuleInit {
         const [type, serverId] = channel.split(':');
         if (serverId) {
             if (type === 'logs') {
-                // Buffer logs in Redis (List) - Use standard client for commands
+                // Buffer logs in Redis using the STANDARD client from RedisService
                 const bufferKey = `log_buffer:${serverId}`;
-                await this.redisService.client.lpush(bufferKey, message);
-                await this.redisService.client.ltrim(bufferKey, 0, 499); // Keep last 500 lines
+                try {
+                    await this.redisService.client.lpush(bufferKey, message);
+                    await this.redisService.client.ltrim(bufferKey, 0, 499);
+                } catch (e) {
+                    this.logger.error(`Failed to buffer log for ${serverId}: ${e.message}`);
+                }
 
                 if (this.gateway.server) {
                     this.gateway.server.to(`server:${serverId}`).emit('log', message);
@@ -51,8 +59,9 @@ export class ConsoleService implements OnModuleInit {
   }
 
   async getLogs(serverId: string): Promise<string[]> {
+    // Use standard client for querying
     const bufferKey = `log_buffer:${serverId}`;
     const logs = await this.redisService.client.lrange(bufferKey, 0, -1);
-    return logs.reverse(); // Reverse to get chronological order
+    return logs.reverse();
   }
 }
