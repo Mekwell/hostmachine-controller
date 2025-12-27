@@ -47,7 +47,7 @@ import { RedisModule } from './redis/redis.module';
       entities: [Node, Plan, Subscription, Server, Metric, Backup, Ticket, User, EmailTemplate],
       synchronize: true, // WARNING: Only for Development!
     }),
-    TypeOrmModule.forFeature([Node, Plan]),
+    TypeOrmModule.forFeature([Node, Plan, User]),
     RedisModule,
     NotificationModule,
     UsersModule,
