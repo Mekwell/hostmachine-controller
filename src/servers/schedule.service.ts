@@ -71,7 +71,9 @@ export class ScheduleService implements OnModuleInit {
   async create(dto: any) {
       const schedule = this.scheduleRepository.create(dto);
       const saved = await this.scheduleRepository.save(schedule);
-      this.addCronJob(saved);
+      if (!Array.isArray(saved)) {
+          this.addCronJob(saved);
+      }
       return saved;
   }
 
