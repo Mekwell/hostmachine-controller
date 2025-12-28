@@ -8,6 +8,7 @@ import { Ticket } from '../tickets/entities/ticket.entity';
 import { TicketsModule } from '../tickets/tickets.module';
 import { CommandsModule } from '../commands/commands.module';
 import { ServersModule } from '../servers/servers.module';
+import { NodesModule } from '../nodes/nodes.module';
 import { NotificationModule } from '../notifications/notification.module';
 import { RedisModule } from '../redis/redis.module';
 
@@ -16,6 +17,7 @@ import { RedisModule } from '../redis/redis.module';
     TypeOrmModule.forFeature([Server, Ticket]),
     TicketsModule,
     CommandsModule,
+    NodesModule,
     forwardRef(() => ServersModule),
     NotificationModule,
     RedisModule,
