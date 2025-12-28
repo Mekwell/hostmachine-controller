@@ -63,6 +63,12 @@ export class Server {
   @Column({ default: 0 })
   progress: number;
 
+  @Column({ type: 'timestamp', nullable: true })
+  lastPlayerActivity: Date;
+
+  @Column({ default: true })
+  hibernationEnabled: boolean;
+
   @Column({ type: 'simple-json', nullable: true })
   players: { name: string; ping: number; joinedAt: string }[];
 

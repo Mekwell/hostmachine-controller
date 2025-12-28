@@ -99,8 +99,14 @@ export class ServersService {
                   updateData.playerCount = newPlayerCount;
                   hasChanges = true;
               }
-              // We skip high-frequency CPU/RAM updates in DB to save I/O
-              // These should be handled by WebSockets only
+              
+              if (newPlayerCount > 0) {
+                  updateData.lastPlayerActivity = new Date();
+                  hasChanges = true;
+              } else if (!server.lastPlayerActivity) {
+                  updateData.lastPlayerActivity = new Date();
+                  hasChanges = true;
+              }
           }
 
           if (server.status === 'PROVISIONING' && (newStatus === 'STARTING' || newStatus === 'LIVE')) {
