@@ -1,6 +1,6 @@
 import { Injectable, Logger, ServiceUnavailableException, BadRequestException, Inject, forwardRef, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository, In, Like } from 'typeorm';
 import { CreateServerDto } from './dto/create-server.dto';
 import { NodesService } from '../nodes/nodes.service';
 import { CommandsService } from '../commands/commands.service';
@@ -35,6 +35,22 @@ export class ServersService {
     private dnsService: DnsService,
     @InjectQueue('deploy') private deployQueue: Queue
   ) {}
+
+  async findBySubdomain(subdomain: string) {
+      const server = await this.serverRepository.findOne({
+          where: { subdomain: Like(`${subdomain}%`) },
+          relations: ['node']
+      });
+      if (!server) throw new NotFoundException('Server not found for this domain');
+      
+      return {
+          id: server.id,
+          name: server.name,
+          status: server.status,
+          port: server.port,
+          nodeIp: server.node?.vpnIp || server.node?.publicIp
+      };
+  }
 
   async findAll(userId?: string) {
     if (userId) {

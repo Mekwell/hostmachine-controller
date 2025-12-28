@@ -5,15 +5,23 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  
-  /* app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    transform: true,
-    forbidNonWhitelisted: false,
-  })); */
+import * as fs from 'fs';
+import * as path from 'path';
+import * as https from 'https';
 
+async function bootstrap() {
+  const httpsOptions = {
+    key: fs.existsSync('./certs/controller.key') ? fs.readFileSync('./certs/controller.key') : null,
+    cert: fs.existsSync('./certs/controller.crt') ? fs.readFileSync('./certs/controller.crt') : null,
+    ca: fs.existsSync('./certs/ca.crt') ? fs.readFileSync('./certs/ca.crt') : null,
+    requestCert: true,
+    rejectUnauthorized: false, // Set to true after all nodes are migrated
+  };
+
+  const app = await NestFactory.create(AppModule, {
+      httpsOptions: httpsOptions.key ? httpsOptions : undefined
+  });
+  
   // Enable CORS for Frontend
   app.enableCors({
     origin: [

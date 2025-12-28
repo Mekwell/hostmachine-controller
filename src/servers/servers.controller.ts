@@ -14,6 +14,14 @@ export class ServersController {
     private readonly scheduleService: ScheduleService
   ) {}
 
+  @Get('lookup')
+  async lookup(@Query('hostname') hostname: string) {
+    // Logic to find server by subdomain
+    // Assuming hostmachine.com.au domain
+    const cleanSubdomain = hostname.replace('.hostmachine.com.au', '');
+    return this.serversService.findBySubdomain(cleanSubdomain);
+  }
+
   @Get()
   findAll(@Query('userId') userId?: string) {
     return this.serversService.findAll(userId);
