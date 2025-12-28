@@ -32,6 +32,7 @@ import { NotificationModule } from './notifications/notification.module';
 import { User } from './users/entities/user.entity';
 import { EmailTemplate } from './notifications/entities/email-template.entity';
 import { UsersModule } from './users/users.module';
+import { Schedule } from './servers/entities/schedule.entity';
 
 import { RedisModule } from './redis/redis.module';
 
@@ -44,7 +45,7 @@ import { RedisModule } from './redis/redis.module';
       username: process.env.DB_USER || 'hm_admin',
       password: process.env.DB_PASSWORD || 'hm_secure_pass_2025',
       database: process.env.DB_NAME || 'hostmachine',
-      entities: [Node, Plan, Subscription, Server, Metric, Backup, Ticket, User, EmailTemplate],
+      entities: [Node, Plan, Subscription, Server, Metric, Backup, Ticket, User, EmailTemplate, Schedule],
       synchronize: true, // WARNING: Only for Development!
     }),
     TypeOrmModule.forFeature([Node, Plan, User]),
