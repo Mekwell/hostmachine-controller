@@ -11,6 +11,8 @@ export enum CommandType {
   DELETE_FILE = 'DELETE_FILE',
   EXEC_COMMAND = 'EXEC_COMMAND', // For sending commands to game console
   GET_LOGS = 'GET_LOGS',
+  INSTALL_MODPACK = 'INSTALL_MODPACK',
+  WAKE_SERVER = 'WAKE_SERVER',
 }
 
 export class CreateCommandDto {

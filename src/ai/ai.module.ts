@@ -2,21 +2,18 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AiService } from './ai.service';
 import { AiController } from './ai.controller';
-import { TicketsModule } from '../tickets/tickets.module';
-import { CommandsModule } from '../commands/commands.module';
-import { NodesModule } from '../nodes/nodes.module';
-import { ServersModule } from '../servers/servers.module';
-import { Server } from '../servers/entities/server.entity';
+import { MonitoringService } from './monitoring.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Server]),
-    TicketsModule, 
-    CommandsModule, 
-    NodesModule, 
-    ServersModule
+    TypeOrmModule.forFeature([Server, Ticket]),
+    TicketsModule,
+    CommandsModule,
+    forwardRef(() => ServersModule),
+    NotificationModule,
+    RedisModule,
   ],
   controllers: [AiController],
-  providers: [AiService],
+  providers: [AiService, MonitoringService],
 })
 export class AiModule {}
