@@ -176,8 +176,6 @@ export class ServersService {
       await this.deployQueue.add('deploy-server', { 
           serverId: savedServer.id,
           template, 
-          gameType: dto.gameType,
-          customImage: dto.customImage,
           nodeId: targetNode.id,
           ...dto 
       }, {
