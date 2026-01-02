@@ -86,7 +86,7 @@ export class ServersService {
       await this.serverRepository.createQueryBuilder()
           .update()
           .set({ status: 'OFFLINE', playerCount: 0, cpuUsage: 0, ramUsage: 0 })
-          .where("id NOT IN (:...ids)", { ids: runningIds.length > 0 ? runningIds : ['none'] })
+          .where("id NOT IN (:...ids)", { ids: runningIds.length > 0 ? runningIds : ['00000000-0000-0000-0000-000000000000'] })
           .andWhere("status NOT IN ('OFFLINE', 'STOPPED')")
           .execute();
 
