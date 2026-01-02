@@ -67,7 +67,7 @@ export class GamesService {
         { name: 'Max Players', description: 'Max 70 recommended', envVar: 'MAX_PLAYERS', defaultValue: '70', type: 'number' },
         { name: 'Map Name', description: 'TheIsland, ScorchedEarth, etc.', envVar: 'MAP', defaultValue: 'TheIsland', type: 'string' }
     ], requiredOs: 'linux' },
-    { id: 'asa', name: 'ARK: Survival Ascended', type: 'asa', category: 'game', dockerImage: 'hostmachine/game-ark-ascended:latest', defaultPort: 7777, defaultEnv: ["SERVER_NAME=ARK-ASA", "MAX_PLAYERS=70", "MAP=TheIsland_WP"], configFile: 'ShooterGame/Saved/Config/WindowsServer/GameUserSettings.ini', icon: '🦕', banner: '/banners/ark.jpg', description: 'UE5 Remastered survival.', variables: [
+    { id: 'asa', name: 'ARK: Survival Ascended', type: 'asa', category: 'game', dockerImage: 'mschnitzer/ark-survival-ascended:latest', defaultPort: 7777, defaultEnv: ["SERVER_NAME=ARK-ASA", "MAX_PLAYERS=70", "MAP=TheIsland_WP"], configFile: 'ShooterGame/Saved/Config/WindowsServer/GameUserSettings.ini', icon: '🦕', banner: '/banners/ark.jpg', description: 'UE5 Remastered survival.', variables: [
         { name: 'Session Name', description: 'Public name', envVar: 'SERVER_NAME', defaultValue: 'ARK-ASA', type: 'string' },
         { name: 'Server Password', description: 'Optional join pass', envVar: 'PASSWORD', defaultValue: '', type: 'string' },
         { name: 'Admin Password', description: 'Cheat console pass', envVar: 'ADMIN_PASSWORD', defaultValue: '', type: 'string' },
