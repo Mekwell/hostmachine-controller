@@ -50,21 +50,6 @@ export class DnsService {
 
       return fullDomain;
     } catch (error: any) {
-      // This allows connecting via "subdomain.hostmachine.net" without port
-      if (port && port !== 25565 && port !== 27015) { // Only if not default? Or always? Always is safer.
-          // _minecraft._tcp.subdomain
-          // Actually, typical usage: _minecraft._tcp.play.hostmachine.net
-          // But if the A record is "subdomain", the SRV should be attached to that name.
-          // Cloudflare UI: Name = _minecraft._tcp.subdomain
-          
-          // However, many games don't support SRV properly (Rust doesn't).
-          // Minecraft does.
-          // For now, we'll stick to just the A record to ensure reliability across all games.
-          // Users can type the port.
-      }
-
-      return fullDomain;
-    } catch (error: any) {
       this.logger.error(`Failed to create DNS record: ${error.message}`);
       return null;
     }
