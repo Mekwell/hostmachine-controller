@@ -32,15 +32,24 @@ export class DnsService {
     try {
       // 1. Create A Record
       // subdomain.hostmachine.net -> 1.2.3.4
-      await this.postRecord({
-        type: 'A',
-        name: subdomain,
-        content: targetIp,
-        ttl: 120, // Short TTL for dynamic gaming IPs
-        proxied: false // CRITICAL: Must be false for non-HTTP traffic
-      });
+      try {
+          await this.postRecord({
+            type: 'A',
+            name: subdomain,
+            content: targetIp,
+            ttl: 120, // Short TTL for dynamic gaming IPs
+            proxied: false // CRITICAL: Must be false for non-HTTP traffic
+          });
+      } catch (dnsErr: any) {
+          if (dnsErr.message.includes('already exists')) {
+              this.logger.log(`DNS record for ${fullDomain} already exists. Proceeding.`);
+          } else {
+              throw dnsErr;
+          }
+      }
 
-      // 2. Create SRV Record (if port is standard Minecraft/Source, etc)
+      return fullDomain;
+    } catch (error: any) {
       // This allows connecting via "subdomain.hostmachine.net" without port
       if (port && port !== 25565 && port !== 27015) { // Only if not default? Or always? Always is safer.
           // _minecraft._tcp.subdomain
