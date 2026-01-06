@@ -15,6 +15,7 @@ import { HibernationService } from './hibernation.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ScheduleService } from './schedule.service';
 import { Schedule } from './entities/schedule.entity';
+import { NetdataService } from './services/netdata.service';
 
 @Module({
   imports: [
@@ -29,7 +30,7 @@ import { Schedule } from './entities/schedule.entity';
     BullModule.registerQueue({ name: 'deploy' })
   ],
   controllers: [ServersController],
-  providers: [ServersService, HibernationService, ScheduleService],
+  providers: [ServersService, HibernationService, ScheduleService, NetdataService],
   exports: [ServersService]
 })
 export class ServersModule {}

@@ -1,6 +1,7 @@
 import { Body, Controller, Post, UseGuards, Get, Param, Delete, Query, Patch } from '@nestjs/common';
 import { ServersService } from './servers.service';
 import { ScheduleService } from './schedule.service';
+import { NetdataService } from './services/netdata.service';
 import { CreateServerDto } from './dto/create-server.dto';
 import { InternalGuard } from '../auth/internal.guard';
 import { ApiKeyGuard } from '../auth/api-key.guard';
@@ -11,7 +12,8 @@ import { OrGuard } from '../auth/or.guard';
 export class ServersController {
   constructor(
     private readonly serversService: ServersService,
-    private readonly scheduleService: ScheduleService
+    private readonly scheduleService: ScheduleService,
+    private readonly netdataService: NetdataService
   ) {}
 
   @Get('lookup')
@@ -25,6 +27,12 @@ export class ServersController {
   @Get()
   findAll(@Query('userId') userId?: string) {
     return this.serversService.findAll(userId);
+  }
+
+  @Get(':id/metrics/live')
+  async getLiveMetrics(@Param('id') id: string) {
+    // We assume the server ID is the container name
+    return this.netdataService.getContainerStats(id);
   }
 
   @Get(':id/schedules')
