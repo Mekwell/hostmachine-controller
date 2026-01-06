@@ -35,14 +35,15 @@ export class GamesService {
     { id: 'tf2', name: 'Team Fortress 2', type: 'tf2', category: 'game', dockerImage: 'gameservermanagers/gameserver:tf2', defaultPort: 27015, defaultEnv: [], configFile: 'serverfiles/tf/cfg/server.cfg', icon: '🎩', banner: '/banners/tf2.jpg', description: 'Arena shooter.', variables: [], requiredOs: 'linux' },
     { id: 'l4d2', name: 'Left 4 Dead 2', type: 'l4d2', category: 'game', dockerImage: 'gameservermanagers/gameserver:l4d2', defaultPort: 27015, defaultEnv: [], configFile: 'serverfiles/left4dead2/cfg/server.cfg', icon: '🧟', banner: '/banners/l4d2.jpg', description: 'Coop shooter.', variables: [], requiredOs: 'linux' },
     { id: 'minecraft-java', name: 'Minecraft (Java)', type: 'mc', category: 'game', dockerImage: 'hostmachine/game-minecraft:latest', defaultPort: 25565, defaultEnv: ["MEMORY=2048", "MOTD=A HostMachine World", "DIFFICULTY=1", "MAX_PLAYERS=20", "EULA=TRUE"], configFile: 'server.properties', icon: '⛏️', banner: '/banners/mc.jpg', description: 'PaperMC high-perf server.', variables: [
-        { name: 'Memory (MB)', description: 'Total RAM for the JVM', envVar: 'MEMORY', defaultValue: '2048', type: 'number' },
-        { name: 'MOTD', description: 'Server list message', envVar: 'MOTD', defaultValue: 'A HostMachine World', type: 'string' },
+        { name: 'Level Name', description: 'World directory name', envVar: 'LEVEL', defaultValue: 'world', type: 'string' },
+        { name: 'Game Mode', description: 'Survival, Creative, etc.', envVar: 'MODE', defaultValue: 'survival', type: 'enum', options: ['survival', 'creative', 'adventure', 'spectator'] },
         { name: 'Difficulty', description: '0=Peaceful, 1=Easy, 2=Normal, 3=Hard', envVar: 'DIFFICULTY', defaultValue: '1', type: 'enum', options: ['0', '1', '2', '3'] },
         { name: 'Max Players', description: 'Concurrent slot limit', envVar: 'MAX_PLAYERS', defaultValue: '20', type: 'number' },
         { name: 'Accept EULA', description: 'Must be TRUE to run', envVar: 'EULA', defaultValue: 'TRUE', type: 'boolean' }
     ], requiredOs: 'linux' },
     { id: 'minecraft-bedrock', name: 'Minecraft (Bedrock)', type: 'mc-bedrock', category: 'game', dockerImage: 'itzg/minecraft-bedrock-server:latest', defaultPort: 19132, defaultEnv: ["EULA=TRUE"], configFile: 'server.properties', icon: '📱', banner: '/banners/mc.jpg', description: 'Cross-platform Bedrock edition.', variables: [
         { name: 'Server Name', description: 'Public name', envVar: 'SERVER_NAME', defaultValue: 'HostMachine Bedrock', type: 'string' },
+        { name: 'Game Mode', description: 'survival, creative', envVar: 'GAMEMODE', defaultValue: 'survival', type: 'enum', options: ['survival', 'creative'] },
         { name: 'Accept EULA', description: 'Must be TRUE to run', envVar: 'EULA', defaultValue: 'TRUE', type: 'boolean' }
     ], requiredOs: 'linux' },
     { id: 'minecraft-forge', name: 'Minecraft (Forge)', type: 'mc-forge', category: 'game', dockerImage: 'itzg/minecraft-server:latest', defaultPort: 25565, defaultEnv: ["TYPE=FORGE", "MEMORY=4G", "EULA=TRUE"], configFile: 'server.properties', icon: '⚒️', banner: '/banners/mc.jpg', description: 'Modded Minecraft with Forge.', variables: [
@@ -62,18 +63,17 @@ export class GamesService {
     ], requiredOs: 'linux' },
     { id: 'ark', name: 'ARK: Survival Evolved', type: 'ark', category: 'game', dockerImage: 'hostmachine/game-ark-evolved:latest', defaultPort: 7777, defaultEnv: ["SERVER_NAME=ARK-ASE", "MAX_PLAYERS=70", "MAP=TheIsland"], configFile: 'ShooterGame/Saved/Config/LinuxServer/GameUserSettings.ini', icon: '🦕', banner: '/banners/ark.jpg', description: 'Classic dino survival.', variables: [
         { name: 'Session Name', description: 'Public name', envVar: 'SERVER_NAME', defaultValue: 'ARK-ASE', type: 'string' },
+        { name: 'Map Name', description: 'Active world map', envVar: 'MAP', defaultValue: 'TheIsland', type: 'enum', options: ['TheIsland', 'ScorchedEarth', 'Aberration', 'Extinction', 'Genesis', 'Ragnarok', 'Valguero', 'CrystalIsles', 'TheCenter', 'LostIsland', 'Fjordur'] },
         { name: 'Server Password', description: 'Optional join pass', envVar: 'PASSWORD', defaultValue: '', type: 'string' },
         { name: 'Admin Password', description: 'Cheat console pass', envVar: 'ADMIN_PASSWORD', defaultValue: '', type: 'string' },
-        { name: 'Max Players', description: 'Max 70 recommended', envVar: 'MAX_PLAYERS', defaultValue: '70', type: 'number' },
-        { name: 'Map Name', description: 'TheIsland, ScorchedEarth, etc.', envVar: 'MAP', defaultValue: 'TheIsland', type: 'string' }
+        { name: 'Max Players', description: 'Max 70 recommended', envVar: 'MAX_PLAYERS', defaultValue: '70', type: 'number' }
     ], requiredOs: 'linux' },
     { id: 'asa', name: 'ARK: Survival Ascended', type: 'asa', category: 'game', dockerImage: 'hostmachine/game-ark-ascended:latest', defaultPort: 7777, defaultEnv: ["SERVER_NAME=ARK-ASA", "MAX_PLAYERS=70", "MAP=TheIsland_WP"], configFile: 'ShooterGame/Saved/Config/WindowsServer/GameUserSettings.ini', icon: '🦕', banner: '/banners/ark.jpg', description: 'UE5 Remastered survival.', variables: [
-        { name: 'Memory (MB)', description: 'Recommended 32768+', envVar: 'MEMORY_LIMIT', defaultValue: '32768', type: 'number' },
         { name: 'Session Name', description: 'Public name', envVar: 'SERVER_NAME', defaultValue: 'ARK-ASA', type: 'string' },
+        { name: 'Map Name', description: 'Active world map', envVar: 'MAP', defaultValue: 'TheIsland_WP', type: 'enum', options: ['TheIsland_WP', 'ScorchedEarth_WP', 'Aberration_WP'] },
         { name: 'Server Password', description: 'Optional join pass', envVar: 'PASSWORD', defaultValue: '', type: 'string' },
         { name: 'Admin Password', description: 'Cheat console pass', envVar: 'ADMIN_PASSWORD', defaultValue: '', type: 'string' },
-        { name: 'Max Players', description: 'Max 70 recommended', envVar: 'MAX_PLAYERS', defaultValue: '70', type: 'number' },
-        { name: 'Map Name', description: 'TheIsland_WP, etc.', envVar: 'MAP', defaultValue: 'TheIsland_WP', type: 'string' }
+        { name: 'Max Players', description: 'Max 70 recommended', envVar: 'MAX_PLAYERS', defaultValue: '70', type: 'number' }
     ], requiredOs: 'linux' },
     { id: 'asa-win', name: 'ARK: Ascended (Windows Native)', type: 'asa', category: 'game', dockerImage: 'hostmachine/game-ark-ascended-win:latest', defaultPort: 7777, defaultEnv: ["SERVER_NAME=ARK-ASA-WIN", "MAX_PLAYERS=70"], configFile: 'ShooterGame/Saved/Config/WindowsServer/GameUserSettings.ini', icon: '🪟', banner: '/banners/ark.jpg', description: 'Headless Windows Server Core build.', variables: [
         { name: 'Session Name', description: 'Public name', envVar: 'SERVER_NAME', defaultValue: 'ARK-ASA-WIN', type: 'string' },
