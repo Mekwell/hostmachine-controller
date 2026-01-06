@@ -63,6 +63,9 @@ export class Server {
   @Column({ default: 0 })
   progress: number;
 
+  @Column({ nullable: true })
+  statusMessage: string;
+
   @Column({ type: 'timestamp', nullable: true })
   lastPlayerActivity: Date;
 

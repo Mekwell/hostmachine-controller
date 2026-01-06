@@ -16,6 +16,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ScheduleService } from './schedule.service';
 import { Schedule } from './entities/schedule.entity';
 import { NetdataService } from './services/netdata.service';
+import { ConsoleModule } from '../console/console.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { NetdataService } from './services/netdata.service';
     GamesModule,
     ModsModule,
     DnsModule,
+    ConsoleModule,
     BullModule.registerQueue({ name: 'deploy' })
   ],
   controllers: [ServersController],

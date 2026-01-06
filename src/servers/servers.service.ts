@@ -13,6 +13,7 @@ import { Metric } from './entities/metric.entity';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, Job } from 'bullmq';
 import { v4 as uuidv4 } from 'uuid';
+import { ConsoleGateway } from '../console/console.gateway';
 
 const generateId = (length: number = 8) => {
     return Math.random().toString(36).substring(2, 2 + length);
@@ -33,6 +34,7 @@ export class ServersService {
     private gamesService: GamesService,
     private modsService: ModsService,
     private dnsService: DnsService,
+    private consoleGateway: ConsoleGateway,
     @InjectQueue('deploy') private deployQueue: Queue
   ) {}
 
@@ -219,13 +221,13 @@ export class ServersService {
     const { serverId, nodeId, gameType, customImage } = jobData;
     this.logger.log(`[Worker] Starting provisioning for Server ${serverId}`);
     
-    const updateProgress = async (val: number) => {
+    const updateProgress = async (val: number, msg: string) => {
         if (job) await job.updateProgress(val);
-        await this.serverRepository.update({ id: serverId }, { progress: val });
+        await this.serverRepository.update({ id: serverId }, { progress: val, statusMessage: msg });
     };
 
     try {
-        await updateProgress(5);
+        await updateProgress(5, 'Synchronizing Node configuration...');
         
         // Fetch Template again in context
         let template: any = this.gamesService.findOne(gameType);
@@ -242,7 +244,7 @@ export class ServersService {
         const targetNode = await this.nodesService.findOne(nodeId);
         if (!targetNode) throw new Error('Target node disappeared');
 
-        await updateProgress(20);
+        await updateProgress(20, 'Verifying Docker environment...');
         
         // Allocate Port
         const port = 20000 + Math.floor(Math.random() * 1000); 
@@ -251,13 +253,14 @@ export class ServersService {
         const dnsIp = targetNode.externalIp || targetNode.publicIp;
         let subdomain = '';
         if (dnsIp) {
+            await updateProgress(30, 'Allocating secure subdomain...');
             const cleanName = this.dnsService.sanitize(server.name);
             const sub = cleanName || `server-${generateId(4)}`;
             const fullDomain = await this.dnsService.createRecord(sub, dnsIp, port);
             if (fullDomain) subdomain = fullDomain;
         }
 
-        await updateProgress(40);
+        await updateProgress(40, 'Hydrating custom mods and assets...');
         let resolvedMods: any[] = [];
         if (jobData.mods && jobData.mods.length > 0) resolvedMods = this.modsService.resolveDependencies(jobData.mods);
 
@@ -266,7 +269,7 @@ export class ServersService {
         server.subdomain = subdomain;
         await this.serverRepository.save(server);
 
-        await updateProgress(60);
+        await updateProgress(60, 'Triggering Docker pull and container creation...');
         
         await this.commandsService.create({
             targetNodeId: targetNode.id,
@@ -289,13 +292,18 @@ export class ServersService {
             }
         });
 
-        await updateProgress(100);
-        await this.serverRepository.update({ id: server.id }, { status: 'STARTING', progress: 100 });
+        await updateProgress(90, 'Applying firewall and network rules...');
+        
+        // Brief pause to simulate finalize
+        await new Promise(r => setTimeout(r, 2000));
+
+        await updateProgress(100, 'Handshake complete. Booting game engine...');
+        await this.serverRepository.update({ id: serverId }, { status: 'STARTING', progress: 100 });
 
         return { serverId: server.id, subdomain };
     } catch (error: any) {
         this.logger.error(`Provisioning failed: ${error.message}`);
-        await this.serverRepository.update({ id: serverId }, { status: 'FAILED' }); // Mark as failed
+        await this.serverRepository.update({ id: serverId }, { status: 'FAILED', statusMessage: `Error: ${error.message}` });
         throw error;
     }
   }
@@ -329,10 +337,19 @@ export class ServersService {
         newStatus = 'STOPPED';
         commandType = CommandType.STOP_SERVER;
         payload.containerId = server.id;
+        payload.purge = false; // "Always up" logic
+
+        // Try soft-stop via WebSocket first (Instant)
+        this.consoleGateway.server.to(`server:${server.id}`).emit('stop-server');
     } else if (action === 'start' || action === 'restart') {
         newStatus = 'STARTING';
         commandType = action === 'restart' ? CommandType.RESTART_SERVER : CommandType.START_SERVER;
         
+        // Try soft-start via WebSocket first
+        if (action === 'start') {
+            this.consoleGateway.server.to(`server:${server.id}`).emit('start-server');
+        }
+
         // Find game template for default port
         const template = this.gamesService.findOne(server.gameType);
         

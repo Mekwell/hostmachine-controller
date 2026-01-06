@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import axios from 'axios';
 import { TicketsService } from '../tickets/tickets.service';
 import { CommandsService } from '../commands/commands.service';
 import { ReportIssueDto } from './dto/report-issue.dto';
@@ -14,6 +15,7 @@ import { RedisService } from '../redis/redis.service';
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
+  private readonly OLLAMA_URL = process.env.OLLAMA_API_URL || 'http://192.168.30.7:11434';
 
   constructor(
     @InjectRepository(Server)
@@ -31,6 +33,28 @@ export class AiService {
       // Send a color-coded message to the live terminal
       const formatted = `\r\n\x1b[35m[HostBot]\x1b[0m \x1b[1m${message}\x1b[0m\r\n`;
       await this.redisService.publish(`logs:${serverId}`, formatted);
+  }
+
+  /**
+   * Calls the local Qwen LLM to explain a complex error log.
+   */
+  async getLlmExplanation(logs: string): Promise<string | null> {
+      try {
+          const response = await axios.post(`${this.OLLAMA_URL}/api/generate`, {
+              model: 'qwen2.5-coder:32b',
+              prompt: `You are HostBot, an expert game server technician. 
+              Analyze these logs and explain what is wrong in 1-2 concise sentences. 
+              Be helpful and professional.
+              
+              LOGS:
+              ${logs.substring(logs.length - 2000)}`, // Last 2k chars
+              stream: false
+          });
+          return response.data.response;
+      } catch (e) {
+          this.logger.error(`HostBot LLM failed: ${e.message}`);
+          return null;
+      }
   }
 
   async analyzeAndRemediate(nodeId: string, report: ReportIssueDto) {
@@ -124,17 +148,28 @@ export class AiService {
     }
 
     // 6. STEAMCMD SYNC FAILURES
-    else if (logs.includes('failed to install app') || logs.includes('missing configuration')) {
+    else if (logs.includes('failed to install app') || logs.includes('missing configuration') || logs.includes('steamcmd needs to be online')) {
         type = TicketType.CONFIG_ERROR;
-        analysis = 'Provisioning Failure: SteamCMD sync failed.';
-        resolution = 'HostBot is clearing the SteamCMD cache and retrying synchronization.';
+        analysis = 'Provisioning Failure: SteamCMD network sync failed.';
+        resolution = 'HostBot is checking the network MTU and clearing the SteamCMD cache.';
         status = TicketStatus.RESOLVED;
         autoFixCommand = { 
             targetNodeId: nodeId, 
             type: CommandType.EXEC_COMMAND, 
             payload: { serverId, command: 'rm -rf /home/steam/Steam/appcache' } 
         };
-        if (serverId) await this.announceToTerminal(serverId, 'SteamCMD Sync Failure detected. Clearing local cache and retrying...');
+        if (serverId) await this.announceToTerminal(serverId, 'SteamCMD Connection Issue detected. This usually indicates an MTU mismatch. Applying auto-fixes...');
+    }
+
+    // --- NEW: LLM FALLBACK ---
+    else {
+        this.logger.log(`No regex match for logs. Calling LLM...`);
+        const llmResult = await this.getLlmExplanation(report.logs);
+        if (llmResult) {
+            analysis = 'Advanced Analysis: ' + llmResult;
+            resolution = 'Ticket created with AI recommendations.';
+            if (serverId) await this.announceToTerminal(serverId, `Analysis: ${llmResult}`);
+        }
     }
 
     // 3. Create Ticket

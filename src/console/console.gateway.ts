@@ -43,6 +43,11 @@ export class ConsoleGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   @SubscribeMessage('log-push')
   handleLogPush(client: Socket, payload: { serverId: string, data: string }) {
+      // --- FILTER LOG NOISE ---
+      if (payload.data && payload.data.includes('GameAnalytics')) return;
+      if (payload.data && payload.data.includes('Event queue: No events to send')) return;
+      // ------------------------
+
       // Broadcast to all clients watching this server
       this.server.to(`server:${payload.serverId}`).emit('log', payload.data);
   }
