@@ -154,6 +154,7 @@ export class GamesService implements OnModuleInit {
   async findAll() {
     // 1. Fetch DB Eggs
     const eggs = await this.eggRepository.find();
+    this.logger.log(`[Debug] Raw eggs from DB: ${JSON.stringify(eggs)}`);
     
     // 2. Map Eggs to GameTemplate format
     const eggTemplates: GameTemplate[] = eggs.map(egg => ({
