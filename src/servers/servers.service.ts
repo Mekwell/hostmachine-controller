@@ -165,6 +165,7 @@ export class ServersService {
 
       // 1. Validation & Node Selection (Synchronous)
       const template: any = this.gamesService.findOne(dto.gameType);
+      this.logger.log(`[Debug] Template for ${dto.gameType}: ${JSON.stringify(template)}`);
       if (!template && !dto.customImage) throw new BadRequestException(`Unknown game type: ${dto.gameType}`);
 
       const nodes = await this.nodesService.findAll();
