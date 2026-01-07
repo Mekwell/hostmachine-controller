@@ -184,6 +184,9 @@ export class GamesService implements OnModuleInit {
       }))
     }));
 
+    this.logger.log(`[Debug] First hardcoded game: ${JSON.stringify(this.games[0])}`);
+    this.logger.log(`[Debug] First egg template: ${JSON.stringify(eggTemplates[0])}`);
+
     // 3. Merge with Hardcoded (Hardcoded takes precedence for now to avoid breaking existing logic)
     // Actually, let's append DB eggs that DON'T conflict
     const combined = [...this.games];
