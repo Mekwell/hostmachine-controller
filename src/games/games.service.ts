@@ -172,6 +172,7 @@ export class GamesService implements OnModuleInit {
       installScript: egg.installScript,
       installContainerImage: egg.installContainerImage,
       installEntrypoint: egg.installEntrypoint,
+      startupCommand: egg.startupCommand,
       variables: (egg.environment || []).map(env => ({
         name: env.name,
         description: env.description,
