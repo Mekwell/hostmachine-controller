@@ -14,10 +14,10 @@ export class GameEgg {
   @Column({ nullable: true })
   description!: string;
 
-  @Column()
+  @Column({ name: 'dockerImage' })
   dockerImage!: string; // e.g. 'ghcr.io/pterodactyl/games:wine'
 
-  @Column()
+  @Column({ name: 'startupCommand' })
   startupCommand!: string; // e.g. './ShooterGameServer ...'
 
   @Column({ default: 'linux' })
@@ -40,16 +40,16 @@ export class GameEgg {
   @Column({ type: 'text', nullable: true })
   installScript!: string; // Bash script for installation
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, name: 'installContainerImage' })
   installContainerImage!: string; // e.g. 'ghcr.io/pterodactyl/installers:debian'
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: true, name: 'installEntrypoint' })
   installEntrypoint!: string; // e.g. '/bin/bash'
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, name: 'configFile' })
   configFile!: string; // Relative path to main config file
 
-  @Column({ default: 0 })
+  @Column({ default: 0, name: 'defaultPort' })
   defaultPort!: number;
 
   @CreateDateColumn()

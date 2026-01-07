@@ -154,8 +154,6 @@ export class GamesService implements OnModuleInit {
   async findAll() {
     // 1. Fetch DB Eggs
     const eggs = await this.eggRepository.find();
-    this.logger.log(`[Debug] Found ${eggs.length} eggs in DB.`);
-    this.logger.log(`[Debug] Hardcoded games count: ${this.games.length}`);
     
     // 2. Map Eggs to GameTemplate format
     const eggTemplates: GameTemplate[] = eggs.map(egg => ({
@@ -165,9 +163,9 @@ export class GamesService implements OnModuleInit {
       category: egg.category as any,
       dockerImage: egg.dockerImage,
       defaultPort: egg.defaultPort,
-      defaultEnv: [], // Eggs use specific variables usually
+      defaultEnv: [], 
       configFile: egg.configFile,
-      icon: '🥚', // Generic Icon for DB Eggs
+      icon: '🥚', 
       banner: '/banners/default.jpg',
       description: egg.description,
       requiredOs: egg.os as any,
@@ -184,16 +182,12 @@ export class GamesService implements OnModuleInit {
       }))
     }));
 
-    this.logger.log(`[Debug] First hardcoded game: ${JSON.stringify(this.games[0])}`);
-    this.logger.log(`[Debug] First egg template: ${JSON.stringify(eggTemplates[0])}`);
-
-    // 3. Merge with Hardcoded (Hardcoded takes precedence for now to avoid breaking existing logic)
-    // Actually, let's append DB eggs that DON'T conflict
-    const combined = [...this.games];
+    // 3. Merge: DB Eggs take precedence
+    const combined = [...eggTemplates];
     
-    for (const t of eggTemplates) {
-      if (!combined.find(g => g.id === t.id)) {
-        combined.push(t);
+    for (const legacy of this.games) {
+      if (!combined.find(g => g.id === legacy.id)) {
+        combined.push(legacy);
       }
     }
 
