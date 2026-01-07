@@ -29,6 +29,7 @@ export interface GameTemplate {
   installScript?: string;
   installContainerImage?: string;
   installEntrypoint?: string;
+  startupCommand?: string;
 }
 
 @Injectable()
