@@ -1,4 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { GameEgg } from './entities/game-egg.entity';
 
 export interface GameVariable {
   name: string;
@@ -23,10 +26,20 @@ export interface GameTemplate {
   description: string;
   variables: GameVariable[];
   requiredOs: 'linux' | 'windows';
+  installScript?: string;
+  installContainerImage?: string;
+  installEntrypoint?: string;
 }
 
 @Injectable()
-export class GamesService {
+export class GamesService implements OnModuleInit {
+  private readonly logger = new Logger(GamesService.name);
+
+  constructor(
+    @InjectRepository(GameEgg)
+    private eggRepository: Repository<GameEgg>
+  ) {}
+
   private games: GameTemplate[] = [
     { id: 'rust', name: 'Rust', type: 'rust', category: 'game', dockerImage: 'gameservermanagers/gameserver:rust', defaultPort: 28015, defaultEnv: [], configFile: 'server/rustserver/cfg/server.cfg', icon: '☢️', banner: '/banners/rust.jpg', description: 'Hardcore survival.', variables: [], requiredOs: 'linux' },
     { id: 'cs2', name: 'Counter-Strike 2', type: 'cs2', category: 'game', dockerImage: 'gameservermanagers/gameserver:cs2', defaultPort: 27015, defaultEnv: [], configFile: 'serverfiles/game/csgo/cfg/server.cfg', icon: '🔫', banner: '/banners/cs2.jpg', description: 'Tactical shooter.', variables: [], requiredOs: 'linux' },
@@ -105,11 +118,112 @@ export class GamesService {
     { id: 'wordpress', name: 'WordPress Site', type: 'web', category: 'web', dockerImage: 'wordpress:latest', defaultPort: 80, defaultEnv: [], configFile: 'wp-config.php', icon: '📝', banner: '/banners/wordpress.jpg', description: 'Classic CMS.', variables: [], requiredOs: 'linux' }
   ];
 
-  findAll() {
-    return this.games;
+  async onModuleInit() {
+    this.logger.log('Syncing legacy games to GameEgg database...');
+    // Seed database with hardcoded games if they don't exist
+    for (const game of this.games) {
+      const exists = await this.eggRepository.findOneBy({ code: game.id });
+      if (!exists) {
+        this.logger.log(`Seeding Egg: ${game.name}`);
+        const egg = this.eggRepository.create({
+          code: game.id,
+          name: game.name,
+          description: game.description,
+          category: game.category,
+          dockerImage: game.dockerImage,
+          defaultPort: game.defaultPort,
+          startupCommand: '{{STARTUP}}', // Placeholder
+          configFile: game.configFile,
+          os: game.requiredOs,
+          environment: game.variables.map(v => ({
+            name: v.name,
+            description: v.description,
+            envVar: v.envVar,
+            defaultValue: v.defaultValue,
+            userViewable: true,
+            userEditable: true,
+            rules: 'required'
+          }))
+        });
+        await this.eggRepository.save(egg);
+      }
+    }
   }
 
-  findOne(id: string) {
-    return this.games.find(g => g.id === id);
+  async findAll() {
+    // 1. Fetch DB Eggs
+    const eggs = await this.eggRepository.find();
+    
+    // 2. Map Eggs to GameTemplate format
+    const eggTemplates: GameTemplate[] = eggs.map(egg => ({
+      id: egg.code,
+      name: egg.name,
+      type: egg.code,
+      category: egg.category as any,
+      dockerImage: egg.dockerImage,
+      defaultPort: egg.defaultPort,
+      defaultEnv: [], // Eggs use specific variables usually
+      configFile: egg.configFile,
+      icon: '🥚', // Generic Icon for DB Eggs
+      banner: '/banners/default.jpg',
+      description: egg.description,
+      requiredOs: egg.os as any,
+      installScript: egg.installScript,
+      installContainerImage: egg.installContainerImage,
+      installEntrypoint: egg.installEntrypoint,
+      variables: (egg.environment || []).map(env => ({
+        name: env.name,
+        description: env.description,
+        envVar: env.envVar,
+        defaultValue: env.defaultValue,
+        type: 'string'
+      }))
+    }));
+
+    // 3. Merge with Hardcoded (Hardcoded takes precedence for now to avoid breaking existing logic)
+    // Actually, let's append DB eggs that DON'T conflict
+    const combined = [...this.games];
+    
+    for (const t of eggTemplates) {
+      if (!combined.find(g => g.id === t.id)) {
+        combined.push(t);
+      }
+    }
+
+    return combined;
+  }
+
+  async findOne(id: string) {
+    const allGames = await this.findAll();
+    return allGames.find(g => g.id === id);
+  }
+
+  async importEgg(json: any) {
+    this.logger.log(`Importing Pterodactyl Egg: ${json.name}`);
+    
+    // Mapping Pterodactyl JSON to HostMachine Egg
+    const egg = this.eggRepository.create({
+      code: `egg-${json.name.toLowerCase().replace(/\s+/g, '-')}`,
+      name: json.name,
+      description: json.description,
+      dockerImage: json.docker_images ? Object.values(json.docker_images)[0] as string : 'ghcr.io/pterodactyl/games:source',
+      startupCommand: json.startup,
+      installScript: json.scripts?.installation?.script,
+      installContainerImage: json.scripts?.installation?.container,
+      installEntrypoint: json.scripts?.installation?.entrypoint,
+      category: 'game',
+      os: 'linux',
+      environment: json.variables?.map((v: any) => ({
+        name: v.name,
+        description: v.description,
+        envVar: v.env_variable,
+        defaultValue: v.default_value,
+        userViewable: v.user_viewable,
+        userEditable: v.user_editable,
+        rules: v.rules
+      })) || []
+    });
+
+    return this.eggRepository.save(egg);
   }
 }

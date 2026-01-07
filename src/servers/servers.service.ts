@@ -251,7 +251,7 @@ export class ServersService {
         await updateProgress(5, 'Synchronizing Node configuration...');
         
         // Fetch Template again in context
-        let template: any = this.gamesService.findOne(gameType);
+        let template: any = await this.gamesService.findOne(gameType);
         if (!template && customImage) {
             template = { dockerImage: customImage, defaultPort: 25565, defaultEnv: [] };
         }
@@ -302,6 +302,10 @@ export class ServersService {
                 image: server.dockerImage,
                 port: port,
                 internalPort: port,
+                installScript: template.installScript,
+                installContainerImage: template.installContainerImage,
+                installEntrypoint: template.installEntrypoint,
+                startupCommand: template.startupCommand,
                 memoryLimitMb: server.memoryLimitMb,
                 env: [
                     ...(template.defaultEnv || []), 
@@ -375,7 +379,7 @@ export class ServersService {
         }
 
         // Find game template for default port
-        const template = this.gamesService.findOne(server.gameType);
+        const template = await this.gamesService.findOne(server.gameType);
         const queryPort = server.port + 1;
         
         payload = {
@@ -383,6 +387,10 @@ export class ServersService {
             image: server.dockerImage,
             port: server.port,
             internalPort: server.port,
+            installScript: template?.installScript,
+            installContainerImage: template?.installContainerImage,
+            installEntrypoint: template?.installEntrypoint,
+            startupCommand: template?.startupCommand,
             memoryLimitMb: server.memoryLimitMb,
             env: [
                 ...(template?.defaultEnv || []),

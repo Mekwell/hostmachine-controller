@@ -33,6 +33,7 @@ import { User } from './users/entities/user.entity';
 import { EmailTemplate } from './notifications/entities/email-template.entity';
 import { UsersModule } from './users/users.module';
 import { Schedule } from './servers/entities/schedule.entity';
+import { GameEgg } from './games/entities/game-egg.entity';
 
 import { RedisModule } from './redis/redis.module';
 
@@ -45,7 +46,7 @@ import { RedisModule } from './redis/redis.module';
       username: process.env.DB_USER || 'hm_admin',
       password: process.env.DB_PASSWORD || 'hm_secure_pass_2025',
       database: process.env.DB_NAME || 'hostmachine',
-      entities: [Node, Plan, Subscription, Server, Metric, Backup, Ticket, User, EmailTemplate, Schedule],
+      entities: [Node, Plan, Subscription, Server, Metric, Backup, Ticket, User, EmailTemplate, Schedule, GameEgg],
       synchronize: true, // WARNING: Only for Development!
     }),
     TypeOrmModule.forFeature([Node, Plan, User]),
