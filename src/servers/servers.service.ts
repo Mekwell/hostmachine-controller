@@ -374,6 +374,8 @@ export class ServersService {
             this.consoleGateway.server.to(`server:${server.id}`).emit('start-server');
         }
 
+        // Find game template for default port
+        const template = this.gamesService.findOne(server.gameType);
         const queryPort = server.port + 1;
         
         payload = {
