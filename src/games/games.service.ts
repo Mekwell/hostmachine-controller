@@ -131,10 +131,10 @@ export class GamesService implements OnModuleInit {
           name: game.name,
           description: game.description,
           category: game.category,
-          dockerImage: game.dockerImage,
-          defaultPort: game.defaultPort,
-          startupCommand: '{{STARTUP}}', // Placeholder
-          configFile: game.configFile,
+          docker_image: game.dockerImage,
+          default_port: game.defaultPort,
+          startup_command: '{{STARTUP}}', // Placeholder
+          config_file: game.configFile,
           os: game.requiredOs,
           environment: game.variables.map(v => ({
             name: v.name,
@@ -154,7 +154,6 @@ export class GamesService implements OnModuleInit {
   async findAll() {
     // 1. Fetch DB Eggs
     const eggs = await this.eggRepository.find();
-    this.logger.log(`[Debug] Raw eggs from DB: ${JSON.stringify(eggs)}`);
     
     // 2. Map Eggs to GameTemplate format
     const eggTemplates: GameTemplate[] = eggs.map(egg => ({
@@ -162,18 +161,18 @@ export class GamesService implements OnModuleInit {
       name: egg.name,
       type: egg.code,
       category: egg.category as any,
-      dockerImage: egg.dockerImage,
-      defaultPort: egg.defaultPort,
+      dockerImage: egg.docker_image,
+      defaultPort: egg.default_port,
       defaultEnv: [], 
-      configFile: egg.configFile,
+      configFile: egg.config_file,
       icon: '🥚', 
       banner: '/banners/default.jpg',
       description: egg.description,
       requiredOs: egg.os as any,
-      installScript: egg.installScript,
-      installContainerImage: egg.installContainerImage,
-      installEntrypoint: egg.installEntrypoint,
-      startupCommand: egg.startupCommand,
+      installScript: egg.install_script,
+      installContainerImage: egg.install_container_image,
+      installEntrypoint: egg.install_entrypoint,
+      startupCommand: egg.startup_command,
       variables: (egg.environment || []).map(env => ({
         name: env.name,
         description: env.description,
@@ -208,11 +207,11 @@ export class GamesService implements OnModuleInit {
       code: `egg-${json.name.toLowerCase().replace(/\s+/g, '-')}`,
       name: json.name,
       description: json.description,
-      dockerImage: json.docker_images ? Object.values(json.docker_images)[0] as string : 'ghcr.io/pterodactyl/games:source',
-      startupCommand: json.startup,
-      installScript: json.scripts?.installation?.script,
-      installContainerImage: json.scripts?.installation?.container,
-      installEntrypoint: json.scripts?.installation?.entrypoint,
+      docker_image: json.docker_images ? Object.values(json.docker_images)[0] as string : 'ghcr.io/pterodactyl/games:source',
+      startup_command: json.startup,
+      install_script: json.scripts?.installation?.script,
+      install_container_image: json.scripts?.installation?.container,
+      install_entrypoint: json.scripts?.installation?.entrypoint,
       category: 'game',
       os: 'linux',
       environment: json.variables?.map((v: any) => ({

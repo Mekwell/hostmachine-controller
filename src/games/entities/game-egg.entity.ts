@@ -15,16 +15,16 @@ export class GameEgg {
   description!: string;
 
   @Column({ name: 'dockerImage' })
-  dockerImage!: string; // e.g. 'ghcr.io/pterodactyl/games:wine'
+  docker_image!: string; 
 
   @Column({ name: 'startupCommand' })
-  startupCommand!: string; // e.g. './ShooterGameServer ...'
+  startup_command!: string; 
 
   @Column({ default: 'linux' })
-  os!: string; // 'linux' | 'windows'
+  os!: string; 
 
   @Column({ default: 'game' })
-  category!: string; // 'game' | 'voip' | 'web'
+  category!: string; 
 
   @Column({ type: 'simple-json', nullable: true })
   environment!: {
@@ -37,20 +37,20 @@ export class GameEgg {
     rules: string;
   }[];
 
-  @Column({ type: 'text', nullable: true })
-  installScript!: string; // Bash script for installation
+  @Column({ type: 'text', nullable: true, name: 'installScript' })
+  install_script!: string; 
 
   @Column({ type: 'text', nullable: true, name: 'installContainerImage' })
-  installContainerImage!: string; // e.g. 'ghcr.io/pterodactyl/installers:debian'
+  install_container_image!: string; 
 
   @Column({ type: 'text', nullable: true, name: 'installEntrypoint' })
-  installEntrypoint!: string; // e.g. '/bin/bash'
+  install_entrypoint!: string; 
 
   @Column({ nullable: true, name: 'configFile' })
-  configFile!: string; // Relative path to main config file
+  config_file!: string; 
 
   @Column({ default: 0, name: 'defaultPort' })
-  defaultPort!: number;
+  default_port!: number;
 
   @CreateDateColumn()
   createdAt!: Date;
