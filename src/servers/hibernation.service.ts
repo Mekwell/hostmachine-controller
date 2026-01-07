@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { Repository, LessThan, In } from 'typeorm';
 import { Server } from './entities/server.entity';
 import { CommandsService } from '../commands/commands.service';
 import { CommandType } from '../commands/dto/create-command.dto';
@@ -29,26 +29,27 @@ export class HibernationService {
             playerCount: 0,
             hibernationEnabled: true,
             lastPlayerActivity: LessThan(inactivityLimit)
-        },
-        relations: ['node']
+        }
     });
 
     if (candidates.length === 0) return;
 
     this.logger.log(`Found ${candidates.length} hibernation candidates.`);
 
+    const candidateIds = candidates.map(s => s.id);
+
+    // Batch send commands to Agent via a more efficient approach if supported, 
+    // otherwise sequential is fine for small scale, but let's at least batch DB updates.
     for (const server of candidates) {
-        this.logger.log(`Hibernating server ${server.name} (${server.id}) due to inactivity.`);
-        
         await this.commandsService.create({
             targetNodeId: server.nodeId,
             type: CommandType.STOP_SERVER,
-            payload: { containerId: server.id }
-        });
-
-        await this.serverRepository.update(server.id, { 
-            status: 'SLEEPING' 
+            payload: { containerId: server.id, purge: false }
         });
     }
+
+    await this.serverRepository.update({ id: In(candidateIds) }, { 
+        status: 'SLEEPING' 
+    });
   }
 }

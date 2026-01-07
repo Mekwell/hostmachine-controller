@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards, Get, Param, Delete, Query, Patch } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards, Get, Param, Delete, Query, Patch, NotFoundException, BadRequestException } from '@nestjs/common';
 import { ServersService } from './servers.service';
 import { ScheduleService } from './schedule.service';
 import { NetdataService } from './services/netdata.service';
@@ -31,8 +31,13 @@ export class ServersController {
 
   @Get(':id/metrics/live')
   async getLiveMetrics(@Param('id') id: string) {
-    // We assume the server ID is the container name
-    return this.netdataService.getContainerStats(id);
+    const server = await this.serversService.findOne(id);
+    if (!server || !server.node) throw new NotFoundException('Server or Node not found');
+    
+    const nodeIp = server.node.vpnIp || server.node.publicIp;
+    if (!nodeIp) throw new BadRequestException('Node has no reachable IP');
+
+    return this.netdataService.getContainerStats(nodeIp, id);
   }
 
   @Get(':id/schedules')

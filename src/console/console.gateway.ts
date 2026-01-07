@@ -3,6 +3,16 @@ import { Server, Socket } from 'socket.io';
 import { Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConsoleService } from './console.service';
 
+interface LogPayload {
+  serverId: string;
+  data: string;
+}
+
+interface StatsPayload {
+  serverId: string;
+  stats: any; // Stats structure varies by game engine
+}
+
 @WebSocketGateway({
   cors: {
     origin: '*',
@@ -32,7 +42,7 @@ export class ConsoleGateway implements OnGatewayConnection, OnGatewayDisconnect 
     this.logger.log(`Client ${client.id} joining room: server:${serverId}`);
     client.join(`server:${serverId}`);
     
-    // Fetch and send log history
+    // Fetch and send log history from local cache
     const history = await this.consoleService.getLogs(serverId);
     if (history && history.length > 0) {
         client.emit('log-history', history);
@@ -41,19 +51,26 @@ export class ConsoleGateway implements OnGatewayConnection, OnGatewayDisconnect 
     return { event: 'joined', data: serverId };
   }
 
+  /**
+   * Broadcasts logs to active dashboard sessions.
+   * Includes a filter to suppress high-volume engine telemetry (GameAnalytics).
+   */
   @SubscribeMessage('log-push')
-  handleLogPush(client: Socket, payload: { serverId: string, data: string }) {
+  handleLogPush(client: Socket, payload: LogPayload) {
       // --- FILTER LOG NOISE ---
-      if (payload.data && payload.data.includes('GameAnalytics')) return;
-      if (payload.data && payload.data.includes('Event queue: No events to send')) return;
+      // We drop these specific engine-level logs to prevent flooding the user's browser
+      if (payload.data && (
+          /GameAnalytics/i.test(payload.data) || 
+          /Event queue: No events to send/i.test(payload.data)
+      )) return;
       // ------------------------
 
-      // Broadcast to all clients watching this server
+      // Broadcast to all clients in the server-specific room
       this.server.to(`server:${payload.serverId}`).emit('log', payload.data);
   }
 
   @SubscribeMessage('stats-push')
-  handleStatsPush(client: Socket, payload: { serverId: string, stats: any }) {
+  handleStatsPush(client: Socket, payload: StatsPayload) {
       this.server.to(`server:${payload.serverId}`).emit('stats', payload.stats);
   }
 }

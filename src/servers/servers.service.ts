@@ -69,6 +69,12 @@ export class ServersService {
   }
 
   async findOne(id: string) {
+    // Validate UUID format before querying database
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+        return null;
+    }
+
     return this.serverRepository.findOne({ 
         where: { id },
         relations: ['node']
@@ -80,17 +86,31 @@ export class ServersService {
    */
   async updateStatusFromHeartbeat(usage: any) {
       const containerStates = usage.containerStates || {};
-      const runningIds = Object.keys(containerStates).filter(id => id !== 'none' && id.length > 5);
       
-      this.logger.log(`Processing heartbeat for ${runningIds.length} containers...`);
+      // Filter for valid UUIDs only (Game Servers)
+      // This prevents 'ollama', 'netdata', etc from causing Postgres string_to_uuid errors
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const runningIds = Object.keys(containerStates).filter(id => uuidRegex.test(id));
+      
+      this.logger.log(`Processing heartbeat for ${runningIds.length} game containers...`);
 
       // 1. Mark missing servers as OFFLINE (Only those not already offline/stopped)
-      await this.serverRepository.createQueryBuilder()
+      // We only target servers that SHOULD be on this node
+      const nodeQuery = this.serverRepository.createQueryBuilder()
           .update()
           .set({ status: 'OFFLINE', playerCount: 0, cpuUsage: 0, ramUsage: 0 })
-          .where("id NOT IN (:...ids)", { ids: runningIds.length > 0 ? runningIds : ['00000000-0000-0000-0000-000000000000'] })
-          .andWhere("status NOT IN ('OFFLINE', 'STOPPED')")
-          .execute();
+          .where("status NOT IN ('OFFLINE', 'STOPPED', 'PROVISIONING', 'STARTING')");
+
+      // Only apply the NOT IN filter if we have valid running game containers
+      if (runningIds.length > 0) {
+          nodeQuery.andWhere("id NOT IN (:...ids)", { ids: runningIds });
+      }
+      
+      try {
+          await nodeQuery.execute();
+      } catch (e) {
+          this.logger.error(`Heartbeat update failed during OFFLINE sync: ${e.message}`);
+      }
 
       // 2. Efficiently update active containers
       if (runningIds.length === 0) return;
@@ -197,6 +217,7 @@ export class ServersService {
           nodeId: targetNode.id,
           ...dto 
       }, {
+          jobId: savedServer.id, // DEDUPLICATION: Prevents multiple jobs for same server
           removeOnComplete: true,
           removeOnFail: false
       });
@@ -271,6 +292,8 @@ export class ServersService {
 
         await updateProgress(60, 'Triggering Docker pull and container creation...');
         
+        const queryPort = port + 1;
+
         await this.commandsService.create({
             targetNodeId: targetNode.id,
             type: CommandType.START_SERVER,
@@ -278,14 +301,15 @@ export class ServersService {
                 serverId: server.id,
                 image: server.dockerImage,
                 port: port,
-                internalPort: template.defaultPort,
+                internalPort: port,
                 memoryLimitMb: server.memoryLimitMb,
                 env: [
                     ...(template.defaultEnv || []), 
                     ...(server.env || []),
                     `SERVER_ID=${server.id}`,
                     `IP=${targetNode.vpnIp || '0.0.0.0'}`,
-                    `PORT=${port}`
+                    `PORT=${port}`,
+                    `QUERY_PORT=${queryPort}`
                 ],
                 mods: resolvedMods,
                 bindIp: targetNode.vpnIp || '0.0.0.0'
@@ -350,21 +374,21 @@ export class ServersService {
             this.consoleGateway.server.to(`server:${server.id}`).emit('start-server');
         }
 
-        // Find game template for default port
-        const template = this.gamesService.findOne(server.gameType);
+        const queryPort = server.port + 1;
         
         payload = {
             serverId: server.id,
             image: server.dockerImage,
             port: server.port,
-            internalPort: template?.defaultPort || 25565,
+            internalPort: server.port,
             memoryLimitMb: server.memoryLimitMb,
             env: [
                 ...(template?.defaultEnv || []),
                 ...(server.env || []),
                 `SERVER_ID=${server.id}`,
                 `IP=${server.node?.vpnIp || '0.0.0.0'}`,
-                `PORT=${server.port}`
+                `PORT=${server.port}`,
+                `QUERY_PORT=${queryPort}`
             ],
             bindIp: server.node?.vpnIp || '0.0.0.0'
         };
