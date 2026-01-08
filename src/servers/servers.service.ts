@@ -163,43 +163,42 @@ export class ServersService {
     try {
       this.logger.log(`Requesting deployment for ${dto.gameType} (User: ${dto.userId})`);
 
-      // 1. Validation & Node Selection (Synchronous)
-      const template: any = await this.gamesService.findOne(dto.gameType);
-      if (!template && !dto.customImage) throw new BadRequestException(`Unknown game type: ${dto.gameType}`);
-
-      const nodes = await this.nodesService.findAll();
-      let onlineNodes = nodes.filter(n => n.status === 'ONLINE');
-
-      // Filter by OS Requirement
-      if (template?.requiredOs === 'windows') {
-          onlineNodes = onlineNodes.filter(n => n.specs?.osPlatform?.toLowerCase().includes('windows'));
-      } else {
-          onlineNodes = onlineNodes.filter(n => !n.specs?.osPlatform?.toLowerCase().includes('windows'));
-      }
-
-      if (dto.location) {
-          const regionalNodes = onlineNodes.filter(n => n.location === dto.location);
-          if (regionalNodes.length > 0) onlineNodes = regionalNodes;
-      }
-      if (onlineNodes.length === 0) throw new ServiceUnavailableException(`No online ${template?.requiredOs || 'linux'} nodes available.`);
-
-      const targetNode = onlineNodes[0]; 
-
-      // 2. Create Placeholder Entity
-      const nameEnv = dto.env?.find(e => e.startsWith('SERVER_NAME='));
-      const serverName = nameEnv ? nameEnv.split('=')[1] : `Server-${generateId(4)}`;
-      const newServerId = uuidv4();
-
-      const server = this.serverRepository.create({
-          id: newServerId,
-          userId: dto.userId,
-          nodeId: targetNode.id,
-          gameType: dto.gameType,
-          name: serverName,
-          dockerImage: template?.dockerImage || dto.customImage,
-          port: 0, 
-          memoryLimitMb: dto.memoryLimitMb,
-          status: 'PROVISIONING',
+            // 1. Validation & Node Selection (Synchronous)
+            const template: any = await this.gamesService.findOne(dto.gameType);
+            if (!template) throw new BadRequestException(`Unknown game type: ${dto.gameType}. Every deployment must use a valid Egg definition.`);
+      
+            const nodes = await this.nodesService.findAll();
+            let onlineNodes = nodes.filter(n => n.status === 'ONLINE');
+      
+            // Filter by OS Requirement
+            if (template.requiredOs === 'windows') {
+                onlineNodes = onlineNodes.filter(n => n.specs?.osPlatform?.toLowerCase().includes('windows'));  
+            } else {
+                onlineNodes = onlineNodes.filter(n => !n.specs?.osPlatform?.toLowerCase().includes('windows')); 
+            }
+      
+            if (dto.location) {
+                const regionalNodes = onlineNodes.filter(n => n.location === dto.location);
+                if (regionalNodes.length > 0) onlineNodes = regionalNodes;
+            }
+            if (onlineNodes.length === 0) throw new ServiceUnavailableException(`No online ${template.requiredOs || 'linux'} nodes available.`);
+      
+            const targetNode = onlineNodes[0];
+      
+            // 2. Create Placeholder Entity
+            const nameEnv = dto.env?.find(e => e.startsWith('SERVER_NAME='));
+            const serverName = nameEnv ? nameEnv.split('=')[1] : `Server-${generateId(4)}`;
+            const newServerId = uuidv4();
+      
+            const server = this.serverRepository.create({
+                id: newServerId,
+                userId: dto.userId,
+                nodeId: targetNode.id,
+                gameType: dto.gameType,
+                name: serverName,
+                dockerImage: template.dockerImage,
+                port: 0,
+                memoryLimitMb: dto.memoryLimitMb,          status: 'PROVISIONING',
           progress: 5,
           env: dto.env || [],
           autoUpdate: dto.autoUpdate ?? true,
@@ -247,18 +246,14 @@ export class ServersService {
         await this.serverRepository.update({ id: serverId }, { progress: val, statusMessage: msg });
     };
 
-    try {
-        await updateProgress(5, 'Synchronizing Node configuration...');
-        
-        // Fetch Template again in context
-        let template: any = await this.gamesService.findOne(gameType);
-        if (!template && customImage) {
-            template = { dockerImage: customImage, defaultPort: 25565, defaultEnv: [] };
-        }
-        if (!template) throw new Error(`Game template '${gameType}' not found.`);
-
-        // Fetch fresh server state
-        const server = await this.serverRepository.findOneBy({ id: serverId });
+        try {
+            await updateProgress(5, 'Synchronizing Node configuration...');
+    
+            // Fetch Template again in context
+            let template: any = await this.gamesService.findOne(gameType);
+            if (!template) throw new Error(`Game egg definition for '${gameType}' not found. Cannot provision without an Egg.`);
+    
+            // Fetch fresh server state        const server = await this.serverRepository.findOneBy({ id: serverId });
         if (!server) throw new Error('Server entity missing in worker');
 
         // Verify Node
