@@ -68,14 +68,9 @@ export class GamesService {
         description: env.description,
         envVar: env.envVar,
         defaultValue: env.defaultValue,
-        type: 'string'
+        type: 'string' as any
       }))
     }));
-  }
-
-  async findOne(id: string) {
-    const allGames = await this.findAll();
-    return allGames.find(g => g.id === id);
   }
 
   async findOne(id: string) {
