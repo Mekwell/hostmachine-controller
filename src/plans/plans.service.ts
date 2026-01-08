@@ -147,6 +147,144 @@ export class PlansService implements OnModuleInit {
             tier: 'premium' as const,
             gameId: 'asa',
             isActive: true
+        },
+        // Rust Plans
+        {
+            name: 'Rust Naked Node',
+            description: 'Standard performance for small-medium maps.',
+            price: 15,
+            ramMb: 8192,
+            cpuCores: 2,
+            type: 'fixed' as const,
+            tier: 'budget' as const,
+            gameId: 'rust',
+            isActive: true
+        },
+        {
+            name: 'Rust Oxide Titan',
+            description: 'High-RAM instance for large maps and heavy plugins.',
+            price: 30,
+            ramMb: 16384,
+            cpuCores: 4,
+            type: 'fixed' as const,
+            tier: 'premium' as const,
+            gameId: 'rust',
+            isActive: true
+        },
+        // CS2 Plans
+        {
+            name: 'CS2 Competitive',
+            description: 'Standard 128-tick reliable hosting.',
+            price: 10,
+            ramMb: 4096,
+            cpuCores: 2,
+            type: 'fixed' as const,
+            tier: 'budget' as const,
+            gameId: 'cs2',
+            isActive: true
+        },
+        {
+            name: 'CS2 eSports Grade',
+            description: 'Pinned CPU cores for tournament stability.',
+            price: 20,
+            ramMb: 8192,
+            cpuCores: 4,
+            type: 'fixed' as const,
+            tier: 'premium' as const,
+            gameId: 'cs2',
+            isActive: true
+        },
+        // Palworld Plans
+        {
+            name: 'Palworld Explorer',
+            description: 'Entry level for small co-op groups.',
+            price: 18,
+            ramMb: 12288,
+            cpuCores: 4,
+            type: 'fixed' as const,
+            tier: 'budget' as const,
+            gameId: 'palworld',
+            isActive: true
+        },
+        {
+            name: 'Palworld Guild Base',
+            description: 'Massive RAM overhead for long-uptime stability.',
+            price: 35,
+            ramMb: 24576,
+            cpuCores: 6,
+            type: 'fixed' as const,
+            tier: 'premium' as const,
+            gameId: 'palworld',
+            isActive: true
+        },
+        // Project Zomboid Plans
+        {
+            name: 'Zomboid Survivor',
+            description: 'Standard vanilla or light-mod hosting.',
+            price: 12,
+            ramMb: 6144,
+            cpuCores: 2,
+            type: 'fixed' as const,
+            tier: 'budget' as const,
+            gameId: 'project-zomboid',
+            isActive: true
+        },
+        {
+            name: 'Zomboid Horde',
+            description: 'Expanded memory for high zombie counts.',
+            price: 22,
+            ramMb: 12288,
+            cpuCores: 4,
+            type: 'fixed' as const,
+            tier: 'premium' as const,
+            gameId: 'project-zomboid',
+            isActive: true
+        },
+        // Valheim Plans
+        {
+            name: 'Valheim Viking',
+            description: 'Solid stability for 1-5 players.',
+            price: 12,
+            ramMb: 4096,
+            cpuCores: 2,
+            type: 'fixed' as const,
+            tier: 'budget' as const,
+            gameId: 'valheim',
+            isActive: true
+        },
+        {
+            name: 'Valheim Longship',
+            description: 'Performance headroom for large builds.',
+            price: 20,
+            ramMb: 8192,
+            cpuCores: 4,
+            type: 'fixed' as const,
+            tier: 'premium' as const,
+            gameId: 'valheim',
+            isActive: true
+        },
+        // DayZ Plans
+        {
+            name: 'DayZ Scavenger',
+            description: 'Reliable hosting for Chernarus/Livonia.',
+            price: 15,
+            ramMb: 6144,
+            cpuCores: 2,
+            type: 'fixed' as const,
+            tier: 'budget' as const,
+            gameId: 'dayz',
+            isActive: true
+        },
+        {
+            name: 'DayZ Warlord',
+            description: 'High-performance for modded servers.',
+            price: 28,
+            ramMb: 12288,
+            cpuCores: 4,
+            type: 'fixed' as const,
+            tier: 'premium' as const,
+            gameId: 'dayz',
+            isActive: true
         }
     ];
 
