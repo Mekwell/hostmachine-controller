@@ -235,17 +235,17 @@ export class ServersService {
     }
   }
 
-  /**
-   * Actual logic executed by the background worker
-   */
   async deployServerTask(jobData: any, job?: Job) {
-    const { serverId, nodeId, gameType, customImage } = jobData;
+    const { serverId, nodeId, gameType } = jobData;
     this.logger.log(`[Worker] Starting provisioning for Server ${serverId}`);
     
     const updateProgress = async (val: number, msg: string) => {
         if (job) await job.updateProgress(val);
         await this.serverRepository.update({ id: serverId }, { progress: val, statusMessage: msg });
     };
+
+    try {
+        await updateProgress(5, 'Synchronizing Node configuration...');
 
         // Fetch Template again in context
         let template: any = await this.gamesService.findOne(gameType);
