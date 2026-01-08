@@ -127,7 +127,7 @@ export class PlansService implements OnModuleInit {
             isActive: true
         },
         {
-            name: 'ARK: Ascended Basic',
+            name: 'ARK: Ascended Survivor',
             description: 'Basic requirement for ARK Survival Ascended',
             price: 35,
             ramMb: 16384,
@@ -138,7 +138,7 @@ export class PlansService implements OnModuleInit {
             isActive: true
         },
         {
-            name: 'ARK: Ascended Pro',
+            name: 'ARK: Ascended Alpha',
             description: 'Stable performance for active tribes',
             price: 60,
             ramMb: 32768,
