@@ -56,7 +56,7 @@ export class GamesService {
       defaultEnv: [],
       configFile: egg.config_file,
       icon: '🥚',
-      banner: '/banners/default.jpg',
+      banner: '/banners/ark.jpg',
       description: egg.description,
       requiredOs: egg.os as any,
       installScript: egg.install_script,
