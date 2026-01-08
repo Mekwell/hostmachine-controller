@@ -198,14 +198,15 @@ export class ServersService {
                 name: serverName,
                 dockerImage: template.dockerImage,
                 port: 0,
-                memoryLimitMb: dto.memoryLimitMb,          status: 'PROVISIONING',
-          progress: 5,
-          env: dto.env || [],
-          autoUpdate: dto.autoUpdate ?? true,
-          restartSchedule: dto.restartSchedule,
-          sftpUsername: `user_${generateId(8)}`, 
-          sftpPassword: generateId(16)
-      });
+                memoryLimitMb: dto.memoryLimitMb,
+                status: 'PROVISIONING',
+                progress: 5,
+                env: dto.env || [],
+                autoUpdate: dto.autoUpdate ?? true,
+                restartSchedule: dto.restartSchedule,
+                sftpUsername: `user_${generateId(8)}`, 
+                sftpPassword: generateId(16)
+            });
       
       const savedServer = await this.serverRepository.save(server);
 
@@ -246,14 +247,12 @@ export class ServersService {
         await this.serverRepository.update({ id: serverId }, { progress: val, statusMessage: msg });
     };
 
-        try {
-            await updateProgress(5, 'Synchronizing Node configuration...');
-    
-            // Fetch Template again in context
-            let template: any = await this.gamesService.findOne(gameType);
-            if (!template) throw new Error(`Game egg definition for '${gameType}' not found. Cannot provision without an Egg.`);
-    
-            // Fetch fresh server state        const server = await this.serverRepository.findOneBy({ id: serverId });
+        // Fetch Template again in context
+        let template: any = await this.gamesService.findOne(gameType);
+        if (!template) throw new Error(`Game egg definition for '${gameType}' not found. Cannot provision without an Egg.`);
+
+        // Fetch fresh server state
+        const server = await this.serverRepository.findOneBy({ id: serverId });
         if (!server) throw new Error('Server entity missing in worker');
 
         // Verify Node
